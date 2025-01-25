@@ -1,71 +1,134 @@
-import sys
 import pygame
-
-WIDTH, HEIGHT = 800, 600
-FPS = 60
+import sys
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Игра с заставкой")
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FPS = 60
+
+GRAVITY = 0.8
+PLAYER_SPEED = 5
+JUMP_STRENGTH = -15
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+YELLOW = (255, 255, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+CYAN = (0, 255, 255)
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Супер Малыш Хорек")
 clock = pygame.time.Clock()
 
-def terminate():
-    pygame.quit()
-    sys.exit()
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(YELLOW)
+        self.rect = self.image.get_rect()
+        self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100)
+        self.velocity_y = 0
+        self.is_jumping = False
 
-def load_image(name, colorkey=None):
-    try:
-        image = pygame.image.load(name)
-    except pygame.error as message:
-        print(f"Cannot load image: {name}")
-        raise SystemExit(message)
-    image = image.convert_alpha()
-    if colorkey is not None:
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
-    return image
+    def update(self, keys, platforms):
+        if keys[pygame.K_a]:
+            self.rect.x -= PLAYER_SPEED
+        if keys[pygame.K_d]:
+            self.rect.x += PLAYER_SPEED
 
-def start_screen():
-    intro_text = ["ЛИЦЕЙ?",
-                  "ДА"]
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
 
-    fon = pygame.transform.scale(load_image('B620EB0D-4C6B-48C6-AAFA-CB8B2E696DC6_1_105_c.jpeg'), (WIDTH, HEIGHT))
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
-    text_coord = 200
-    for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('black'))
-        intro_rect = string_rendered.get_rect()
-        text_coord += 10
-        intro_rect.top = text_coord
-        intro_rect.x = 10
-        text_coord += intro_rect.height
-        screen.blit(string_rendered, intro_rect)
+        for platform in platforms:
+            if self.rect.colliderect(platform.rect) and self.velocity_y > 0:
+                self.rect.bottom = platform.rect.top
+                self.velocity_y = 0
+                self.is_jumping = False
 
-    while True:
+        if keys[pygame.K_w] and not self.is_jumping:
+            self.velocity_y = JUMP_STRENGTH
+            self.is_jumping = True
+
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.rect.bottom = SCREEN_HEIGHT
+            self.is_jumping = False
+
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height):
+        super().__init__()
+        self.image = pygame.Surface((width, height))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+
+def show_start_screen():
+    screen.fill(BLUE)
+    font = pygame.font.Font(None, 74)
+    text = font.render("Супер Малыш Хорек", True, WHITE)
+    screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 3))
+
+    font = pygame.font.Font(None, 36)
+    text = font.render("Нажмите любую клавишу, чтобы начать (Управление: WASD)", True, WHITE)
+    screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
+
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                terminate()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                return
-        pygame.display.flip()
-        clock.tick(FPS)
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                waiting = False
 
-def main():
-    start_screen()
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+class Level:
+    def __init__(self):
+        self.all_sprites = pygame.sprite.Group()
+        self.platforms = pygame.sprite.Group()
 
-        screen.fill((0, 0, 0))
-        pygame.display.flip()
-        clock.tick(FPS)
+        self.player = Player()
+        self.all_sprites.add(self.player)
 
-    terminate()
+        level_layout = [
+            (0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20),
+            (200, 500, 150, 20),
+            (400, 400, 150, 20),
+            (600, 300, 150, 20),
+            (300, 200, 100, 20)
+        ]
 
-if __name__ == "__main__":
-    main()
+        for x, y, width, height in level_layout:
+            platform = Platform(x, y, width, height)
+            self.platforms.add(platform)
+            self.all_sprites.add(platform)
+
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+            keys = pygame.key.get_pressed()
+
+            self.player.update(keys, self.platforms)
+
+            screen.fill(CYAN)
+            self.all_sprites.draw(screen)
+
+            pygame.display.flip()
+            clock.tick(FPS)
+
+show_start_screen()
+level = Level()
+level.run()
+
+pygame.quit()
+sys.exit()
