@@ -1,10 +1,8 @@
 import pygame
 import sys
 
-pygame.init()
-
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+WIDTH = 800
+HEIGHT = 600
 FPS = 60
 
 GRAVITY = 0.8
@@ -18,17 +16,18 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 CYAN = (0, 255, 255)
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Супер Малыш Хорек")
 clock = pygame.time.Clock()
 
-class Player(pygame.sprite.Sprite):
+
+class BabyFerret(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((50, 50))
         self.image.fill(YELLOW)
         self.rect = self.image.get_rect()
-        self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100)
+        self.rect.center = (WIDTH // 2, HEIGHT - 100)
         self.velocity_y = 0
         self.is_jumping = False
 
@@ -53,11 +52,22 @@ class Player(pygame.sprite.Sprite):
 
         if self.rect.left < 0:
             self.rect.left = 0
-        if self.rect.right > SCREEN_WIDTH:
-            self.rect.right = SCREEN_WIDTH
-        if self.rect.bottom > SCREEN_HEIGHT:
-            self.rect.bottom = SCREEN_HEIGHT
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH
+        if self.rect.bottom > HEIGHT:
+            self.rect.bottom = HEIGHT
             self.is_jumping = False
+
+
+class Princess(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+
+
+class Fungus(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+
 
 class Platform(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height):
@@ -67,37 +77,17 @@ class Platform(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
 
-def show_start_screen():
-    screen.fill(BLUE)
-    font = pygame.font.Font(None, 74)
-    text = font.render("Супер Малыш Хорек", True, WHITE)
-    screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 3))
 
-    font = pygame.font.Font(None, 36)
-    text = font.render("Нажмите любую клавишу, чтобы начать (Управление: WASD)", True, WHITE)
-    screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
-
-    pygame.display.flip()
-
-    waiting = True
-    while waiting:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                waiting = False
-
-class Level:
+class FirstLevel:
     def __init__(self):
         self.all_sprites = pygame.sprite.Group()
         self.platforms = pygame.sprite.Group()
 
-        self.player = Player()
-        self.all_sprites.add(self.player)
+        self.Ferret = BabyFerret()
+        self.all_sprites.add(self.Ferret)
 
         level_layout = [
-            (0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20),
+            (0, HEIGHT - 20, WIDTH, 20),
             (200, 500, 150, 20),
             (400, 400, 150, 20),
             (600, 300, 150, 20),
@@ -118,17 +108,50 @@ class Level:
 
             keys = pygame.key.get_pressed()
 
-            self.player.update(keys, self.platforms)
-
+            self.Ferret.update(keys, self.platforms)
             screen.fill(CYAN)
             self.all_sprites.draw(screen)
-
             pygame.display.flip()
             clock.tick(FPS)
 
-show_start_screen()
-level = Level()
-level.run()
 
-pygame.quit()
-sys.exit()
+class SecondLevel(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+
+
+class FinalLevel(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+
+
+if __name__ == "__main__":
+
+    def start_screen():
+        screen.fill(BLUE)
+        font = pygame.font.Font(None, 74)
+        text = font.render("Супер Малыш Хорек", True, WHITE)
+        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 3))
+
+        font = pygame.font.Font(None, 36)
+        text = font.render("Нажмите любую клавишу, чтобы начать (Управление: WASD)", True, WHITE)
+        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2))
+
+        pygame.display.flip()
+
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    waiting = False
+
+
+    pygame.init()
+    start_screen()
+    level = FirstLevel()
+    level.run()
+    pygame.quit()
+    sys.exit()
