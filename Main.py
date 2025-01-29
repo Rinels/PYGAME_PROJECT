@@ -1,8 +1,6 @@
 import pygame
 import sys
 
-pygame.init()
-
 WIDTH = 800
 HEIGHT = 600
 FPS = 60
@@ -128,6 +126,7 @@ class FinalLevel(pygame.sprite.Sprite):
 
 
 if __name__ == "__main__":
+
     def start_screen():
         screen.fill(BLUE)
         font = pygame.font.Font(None, 74)
@@ -150,6 +149,7 @@ if __name__ == "__main__":
                     waiting = False
 
 
+    pygame.init()
     start_screen()
     level = FirstLevel()
     level.run()
