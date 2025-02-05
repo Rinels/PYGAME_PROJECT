@@ -35,6 +35,9 @@ class BabyFerret(pygame.sprite.Sprite):
         # Движение влево и вправо
         if keys[pygame.K_a]:
             self.rect.x -= PLAYER_SPEED
+            # Отражение спрайта при движении влево
+            self.image = pygame.transform.flip(pygame.image.load("BabyFerret.png"), True, False)
+            self.image = pygame.transform.scale(self.image, (32, 32))
             # Проверка коллизий с непроходимыми тайлами
             for tile in blocked_tiles:
                 if self.rect.colliderect(tile):
@@ -43,6 +46,9 @@ class BabyFerret(pygame.sprite.Sprite):
 
         if keys[pygame.K_d]:
             self.rect.x += PLAYER_SPEED
+            # Отображение спрайта в нормальном положении при движении вправо
+            self.image = pygame.transform.flip(pygame.image.load("BabyFerret.png"), False, False)
+            self.image = pygame.transform.scale(self.image, (32, 32))
             # Проверка коллизий с непроходимыми тайлами
             for tile in blocked_tiles:
                 if self.rect.colliderect(tile):
