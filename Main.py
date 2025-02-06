@@ -10,6 +10,8 @@ PLAYER_SPEED = 4
 JUMP_STRENGTH = -15
 WHITE = (255, 255, 255)
 CYAN = (0, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Супер Малыш Хорек")
@@ -23,19 +25,12 @@ class Camera:
         self.height = height
 
     def apply(self, target_rect):
-        """
-        Возвращает новое положение спрайта с учетом смещения камеры.
-        """
         return target_rect.move(-self.camera_rect.x, -self.camera_rect.y)
 
     def update(self, target):
-        """
-        Центрирует камеру на цели (персонаже), ограничивая ее границами карты.
-        """
         x = target.rect.centerx - WIDTH // 2
         y = target.rect.centery - HEIGHT // 2
 
-        # Ограничиваем камеру границами карты
         x = max(0, min(x, self.width - WIDTH))
         y = max(0, min(y, self.height - HEIGHT))
 
@@ -203,26 +198,54 @@ class SecondLevel:
                 break
 
 
+class Button:
+    def __init__(self, x, y, width, height, text, font_size=36):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.color = GRAY
+        self.text = text
+        self.font = pygame.font.Font(None, font_size)
+        self.text_surf = self.font.render(text, True, BLACK)
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, self.rect)
+        screen.blit(self.text_surf, (self.rect.centerx - self.text_surf.get_width() // 2,
+                                     self.rect.centery - self.text_surf.get_height() // 2))
+
+    def is_clicked(self, pos):
+        return self.rect.collidepoint(pos)
+
+
 def start_screen():
     screen.fill(WHITE)
     font = pygame.font.Font(None, 74)
-    text = font.render("Супер Малыш Хорек", True, (0, 0, 0))
-    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 3))
+    text = font.render("Супер Малыш Хорек", True, BLACK)
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 4))
 
-    font = pygame.font.Font(None, 36)
-    text = font.render("Нажмите любую клавишу, чтобы начать (Управление: WASD)", True, (0, 0, 0))
-    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2))
+    start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Начать игру")
+    exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Выход")
 
-    pygame.display.flip()
+    buttons = [start_button, exit_button]
 
-    waiting = True
-    while waiting:
+    while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == pygame.KEYDOWN:
-                waiting = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    for button in buttons:
+                        if button.is_clicked(event.pos):
+                            if button.text == "Начать игру":
+                                return
+                            elif button.text == "Выход":
+                                pygame.quit()
+                                sys.exit()
+
+        for button in buttons:
+            button.draw(screen)
+
+        pygame.display.flip()
+        clock.tick(FPS)
 
 
 if __name__ == "__main__":
