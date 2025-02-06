@@ -313,6 +313,7 @@ class DownloadScreen:
                 self.current_dot_index = (self.current_dot_index + 1) % len(self.dots)
                 self.last_update = now
 
+            # Отрисовка экрана загрузки
             self.draw_loading_screen()
             self.clock.tick(FPS)
 
@@ -321,6 +322,7 @@ if __name__ == "__main__":
     #download_screen = DownloadScreen()
     #download_screen.loading_screen()
     level = FirstLevel("FirstLevel.tmx")
+    #level = SecondLevel("SecondLevel.tmx")
     start_screen()
     level.run()
     pygame.quit()
