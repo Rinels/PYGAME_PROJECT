@@ -2,23 +2,19 @@ import pygame
 import pytmx
 import sys
 
-# Константы
-WIDTH = 1000  # Ширина экрана
-HEIGHT = 700  # Высота экрана
+WIDTH = 1000
+HEIGHT = 700
 FPS = 60
-
 GRAVITY = 0.8
-PLAYER_SPEED = 4  # Уменьшено на 20% (было 5)
+PLAYER_SPEED = 4
 JUMP_STRENGTH = -15
-
 WHITE = (255, 255, 255)
 CYAN = (0, 255, 255)
-
-# Инициализация Pygame
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Супер Малыш Хорек")
 clock = pygame.time.Clock()
+
 
 class Camera:
     def __init__(self, width, height):
@@ -44,6 +40,7 @@ class Camera:
         y = max(0, min(y, self.height - HEIGHT))
 
         self.camera_rect = pygame.Rect(x, y, WIDTH, HEIGHT)
+
 
 class BabyFerret(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
@@ -118,6 +115,18 @@ class BabyFerret(pygame.sprite.Sprite):
                 self.is_jumping = False
                 break
 
+
+class Enemy:
+    def __init__(self, x, y, tmx_data):
+        super().__init__()
+        self.image = pygame.image.load("Enemy.png")
+        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+        self.velocity_y = 0  # Начальная вертикальная скорость
+        self.tmx_data = tmx_data
+
+
 class FirstLevel:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
@@ -177,30 +186,48 @@ class FirstLevel:
                         screen.blit(tile, (x * self.tmx_data.tilewidth - self.camera.camera_rect.x,
                                            y * self.tmx_data.tileheight - self.camera.camera_rect.y))
 
-    def start_screen(self):
-        screen.fill(WHITE)
-        font = pygame.font.Font(None, 74)
-        text = font.render("Супер Малыш Хорек", True, (0, 0, 0))
-        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 3))
 
-        font = pygame.font.Font(None, 36)
-        text = font.render("Нажмите любую клавишу, чтобы начать (Управление: WASD)", True, (0, 0, 0))
-        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2))
+class SecondLevel:
+    def __init__(self, map_file):
+        self.all_sprites = pygame.sprite.Group()
+        self.platforms = []
+        self.blocked_tiles = []
 
-        pygame.display.flip()
+        self.tmx_data = pytmx.load_pygame(map_file)
 
-        waiting = True
-        while waiting:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.KEYDOWN:
-                    waiting = False
+        self.Ferret = None
+        for obj in self.tmx_data.objects:
+            if obj.name == "Player":
+                self.Ferret = BabyFerret(obj.x, obj.y, self.tmx_data)
+                self.all_sprites.add(self.Ferret)
+                break
+
+
+def start_screen():
+    screen.fill(WHITE)
+    font = pygame.font.Font(None, 74)
+    text = font.render("Супер Малыш Хорек", True, (0, 0, 0))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 3))
+
+    font = pygame.font.Font(None, 36)
+    text = font.render("Нажмите любую клавишу, чтобы начать (Управление: WASD)", True, (0, 0, 0))
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2))
+
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                waiting = False
+
 
 if __name__ == "__main__":
     level = FirstLevel("FirstLevel.tmx")
-    level.start_screen()
+    start_screen()
     level.run()
     pygame.quit()
     sys.exit()
