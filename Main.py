@@ -1,5 +1,5 @@
 import pygame
-from pytmx.util_pygame import load_pygame
+import pytmx
 import sys
 
 # Константы
@@ -124,7 +124,7 @@ class FirstLevel:
         self.platforms = []
         self.blocked_tiles = []
 
-        self.tmx_data = load_pygame(map_file)
+        self.tmx_data = pytmx.load_pygame(map_file)
 
         self.Ferret = None
         for obj in self.tmx_data.objects:
