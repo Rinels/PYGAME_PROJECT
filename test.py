@@ -3,8 +3,8 @@ from pytmx.util_pygame import load_pygame
 import sys
 
 # Константы
-WIDTH = 800  # Ширина экрана
-HEIGHT = 600  # Высота экрана
+WIDTH = 1000  # Ширина экрана
+HEIGHT = 700  # Высота экрана
 FPS = 60
 
 GRAVITY = 0.8
@@ -151,19 +151,11 @@ class FirstLevel:
             # Обновление спрайтов
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
 
-            # Жесткая привязка камеры к игроку
-            self.camera_x = self.Ferret.rect.centerx - WIDTH // 2
-            self.camera_y = self.Ferret.rect.centery - HEIGHT // 2
 
-            # Ограничение камеры в пределах карты
             self.camera_x = max(0, min(self.camera_x, self.tmx_data.width * self.tmx_data.tilewidth - WIDTH))
             self.camera_y = max(0, min(self.camera_y, self.tmx_data.height * self.tmx_data.tileheight - HEIGHT))
-
-            # Отрисовка карты
             screen.fill(CYAN)
             self.render_map()
-
-            # Отрисовка всех спрайтов
             self.all_sprites.draw(screen)
             pygame.display.flip()
             clock.tick(FPS)
