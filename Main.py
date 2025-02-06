@@ -239,6 +239,8 @@ def start_screen():
                     for button in buttons:
                         if button.is_clicked(event.pos):
                             if button.text == "Начать игру":
+                                download_screen = DownloadScreen()
+                                download_screen.loading_screen()
                                 return
                             elif button.text == "Выход":
                                 pygame.quit()
@@ -256,8 +258,6 @@ class DownloadScreen:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 74)
         self.small_font = pygame.font.Font(None, 36)
-
-        # Текст
         self.offers = [
             'А вы знаете, что очень трудно найти спрайт хорька?',
             'Warning: хорек обнаружил неинициализированную переменную. Он ее унес.',
@@ -285,21 +285,16 @@ class DownloadScreen:
         self.dot_animation_speed = 500
 
     def draw_loading_screen(self):
-        """Отрисовывает экран загрузки."""
         self.screen.fill(WHITE)
-
-        # Отрисовка текста "Загрузка" с анимированными точками
         loading_surface = self.font.render(self.loading_text + self.dots[self.current_dot_index], True, BLACK)
         self.screen.blit(loading_surface, (WIDTH // 2 - loading_surface.get_width() // 2, HEIGHT // 2 - 50))
 
-        # Отрисовка дополнительного текста
         additional_surface = self.small_font.render(self.additional_text, True, BLACK)
         self.screen.blit(additional_surface, (WIDTH // 2 - additional_surface.get_width() // 2, HEIGHT // 2 + 50))
-
         pygame.display.flip()
 
     def loading_screen(self):
-        duration = 8
+        duration = 6
         start_time = time.time()
         while time.time() - start_time < duration:
             for event in pygame.event.get():
@@ -307,13 +302,11 @@ class DownloadScreen:
                     pygame.quit()
                     sys.exit()
 
-            # Обновление анимации точек
             now = pygame.time.get_ticks()
             if now - self.last_update > self.dot_animation_speed:
                 self.current_dot_index = (self.current_dot_index + 1) % len(self.dots)
                 self.last_update = now
 
-            # Отрисовка экрана загрузки
             self.draw_loading_screen()
             self.clock.tick(FPS)
 
