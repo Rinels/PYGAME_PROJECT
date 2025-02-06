@@ -1,6 +1,8 @@
 import pygame
 import pytmx
 import sys
+import random
+import time
 
 WIDTH = 1000
 HEIGHT = 700
@@ -40,7 +42,7 @@ class Camera:
 class BabyFerret(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
-        self.image = pygame.image.load("BabyFerret.png")
+        self.image = pygame.image.load("Ferret.png")
         self.image = pygame.transform.scale(self.image, (32, 32))
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
@@ -52,7 +54,7 @@ class BabyFerret(pygame.sprite.Sprite):
         # Движение влево и вправо
         if keys[pygame.K_a]:
             self.rect.x -= PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("BabyFerret.png"), True, False)
+            self.image = pygame.transform.flip(pygame.image.load("Ferret.png"), True, False)
             self.image = pygame.transform.scale(self.image, (32, 32))
             for tile in blocked_tiles:
                 if self.rect.colliderect(tile):
@@ -61,7 +63,7 @@ class BabyFerret(pygame.sprite.Sprite):
 
         if keys[pygame.K_d]:
             self.rect.x += PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("BabyFerret.png"), False, False)
+            self.image = pygame.transform.flip(pygame.image.load("Ferret.png"), False, False)
             self.image = pygame.transform.scale(self.image, (32, 32))
             for tile in blocked_tiles:
                 if self.rect.colliderect(tile):
@@ -164,7 +166,8 @@ class FirstLevel:
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
             self.camera.update(self.Ferret)
 
-            screen.fill(CYAN)
+            screen.fill("CYAN")
+
             self.render_map()
             for sprite in self.all_sprites:
                 screen.blit(sprite.image, self.camera.apply(sprite.rect))
@@ -247,8 +250,76 @@ def start_screen():
         pygame.display.flip()
         clock.tick(FPS)
 
+class DownloadScreen:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 74)
+        self.small_font = pygame.font.Font(None, 36)
+
+        # Текст
+        self.offers = [
+            'А вы знаете, что очень трудно найти спрайт хорька?',
+            'Warning: хорек обнаружил неинициализированную переменную. Он ее унес.',
+            'Мы подозреваем, что это не ошибка, а хорьки устроили вечеринку в коде.',
+            'Факт: хорьки используют рекурсию, чтобы прятать носки в бесконечном цикле.',
+            'Ошибка 404: хорек не найден. Он ушел в отладку.',
+            'Если хорек завис — это не баг, он просто размышляет о смысле жизни.',
+            'Кажется, хорьки вырыли нору в текстурах. Мы копаем следом.',
+            'Ошибка: хорек украл часть уровня. Сейчас вернем.',
+            'Если враг не двигается, хорьки говорят, что это "режим стелса".',
+            'Хорьки утверждают, что багов нет — это новые механики.',
+            'Ваш хорек застрял в текстурах? Это его зона комфорта.',
+            'Секретный факт: хорьки заменяют баги своей харизмой.',
+            'Баг или фича? Хорьки молчат, как шпионы.',
+            'Ошибка: хорьки решили, что музыка в игре лишняя.',
+            'Если игра вылетела, это потому что хорьки решили устроить перерыв.'
+        ]
+        self.loading_text = "Загрузка уровня"
+        self.additional_text = random.choice(self.offers)
+
+        # Анимация точек
+        self.dots = ["", ".", "..", "..."]
+        self.current_dot_index = 0
+        self.last_update = pygame.time.get_ticks()
+        self.dot_animation_speed = 500
+
+    def draw_loading_screen(self):
+        """Отрисовывает экран загрузки."""
+        self.screen.fill(WHITE)
+
+        # Отрисовка текста "Загрузка" с анимированными точками
+        loading_surface = self.font.render(self.loading_text + self.dots[self.current_dot_index], True, BLACK)
+        self.screen.blit(loading_surface, (WIDTH // 2 - loading_surface.get_width() // 2, HEIGHT // 2 - 50))
+
+        # Отрисовка дополнительного текста
+        additional_surface = self.small_font.render(self.additional_text, True, BLACK)
+        self.screen.blit(additional_surface, (WIDTH // 2 - additional_surface.get_width() // 2, HEIGHT // 2 + 50))
+
+        pygame.display.flip()
+
+    def loading_screen(self):
+        duration = 8
+        start_time = time.time()
+        while time.time() - start_time < duration:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+            # Обновление анимации точек
+            now = pygame.time.get_ticks()
+            if now - self.last_update > self.dot_animation_speed:
+                self.current_dot_index = (self.current_dot_index + 1) % len(self.dots)
+                self.last_update = now
+
+            self.draw_loading_screen()
+            self.clock.tick(FPS)
+
 
 if __name__ == "__main__":
+    #download_screen = DownloadScreen()
+    #download_screen.loading_screen()
     level = FirstLevel("FirstLevel.tmx")
     start_screen()
     level.run()
