@@ -3,6 +3,7 @@ import pytmx
 import sys
 import random
 import time
+import sqlite3
 
 WIDTH = 1000
 HEIGHT = 700
@@ -294,7 +295,7 @@ class DownloadScreen:
         pygame.display.flip()
 
     def loading_screen(self):
-        duration = 6
+        duration = 5
         start_time = time.time()
         while time.time() - start_time < duration:
             for event in pygame.event.get():
