@@ -8,7 +8,7 @@ import sqlite3
 WIDTH = 1000
 HEIGHT = 700
 FPS = 60
-GRAVITY = 0.8
+GRAVITY = 1
 PLAYER_SPEED = 4
 JUMP_STRENGTH = -15
 WHITE = (255, 255, 255)
@@ -47,7 +47,7 @@ class BabyFerret(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(self.image, (32, 32))
         self.rect = self.image.get_rect(topleft=(x, y))
         self.velocity_y = 0  # Начальная вертикальная скорость
-        self.is_jumping = False
+        self.on_ground = True
         self.tmx_data = tmx_data
 
     def update(self, keys, platforms, blocked_tiles):
@@ -74,27 +74,27 @@ class BabyFerret(pygame.sprite.Sprite):
         self.velocity_y += GRAVITY
         self.rect.y += self.velocity_y
 
-        self.is_jumping = True
+        self.on_ground = False
         for platform in platforms:
             if self.rect.colliderect(platform):
                 if self.velocity_y > 0:
                     self.rect.bottom = platform.top
                     self.velocity_y = 0
-                    self.is_jumping = False
+                    self.on_ground = True
 
         for tile in blocked_tiles:
             if self.rect.colliderect(tile):
                 if self.velocity_y > 0:
                     self.rect.bottom = tile.top
                     self.velocity_y = 0
-                    self.is_jumping = False
+                    self.on_ground = True
                 elif self.velocity_y < 0:
                     self.rect.top = tile.bottom
                     self.velocity_y = 0
 
-        if keys[pygame.K_w] and not self.is_jumping:
+        if keys[pygame.K_w] and self.on_ground:
             self.velocity_y = JUMP_STRENGTH
-            self.is_jumping = True
+            self.on_ground = False
 
         if self.rect.left < 0:
             self.rect.left = 0
@@ -216,9 +216,9 @@ class Mob(pygame.sprite.Sprite):
 class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
+        self.enemies = pygame.sprite.Group()
         self.platforms = []
         self.blocked_tiles = []
-        self.enemies = []
 
         self.tmx_data = pytmx.load_pygame(map_file)
 
@@ -230,7 +230,7 @@ class Level:
             if obj.name == "Enemy":
                 enemy = Mob(obj.x, obj.y, self.tmx_data)  # Создаем нового врага
                 self.all_sprites.add(enemy)
-                self.enemies.append(enemy)
+                self.enemies.add(enemy)
 
         for layer in self.tmx_data.visible_layers:
             if hasattr(layer, 'data'):
@@ -261,19 +261,18 @@ class Level:
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
             self.camera.update(self.Ferret)
 
+            # Проверка столкновения игрока с врагами
             hits = pygame.sprite.spritecollide(self.Ferret, self.enemies, False)
             for slime in hits:
-                # Если игрок падает и его нижняя граница находится чуть выше верхней границы врага
-                if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 15:
+                if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 10:  # Уточнение для верхнего удара
                     slime.die()  # Убить врага
                     self.Ferret.velocity_y = JUMP_STRENGTH // 2  # Отскок игрока
                 else:
-                    # Игрок умирает, если столкновение не сверху
-                    print("Player died!")
-                    self.Ferret.reset_position()  # Сброс позиции игрока
+                    if self.Ferret.on_ground:
+                        self.Ferret.reset_position()  # Сброс позиции игрока
 
-            screen.fill("CYAN")
-
+            # Обновление экрана и рендеринг карты
+            screen.fill(CYAN)
             self.render_map()
             for sprite in self.all_sprites:
                 screen.blit(sprite.image, self.camera.apply(sprite.rect))
