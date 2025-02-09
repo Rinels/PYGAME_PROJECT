@@ -1,206 +1,172 @@
 import pygame
-from pytmx.util_pygame import load_pygame
-import sys
+import os
 
-# Константы
-WIDTH = 1000  # Ширина экрана
-HEIGHT = 700  # Высота экрана
+# Constants
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 FPS = 60
 
-GRAVITY = 0.8
-PLAYER_SPEED = 4  # Уменьшено на 20% (было 5)
-JUMP_STRENGTH = -15
-
-WHITE = (255, 255, 255)
-CYAN = (0, 255, 255)
-
-# Инициализация Pygame
-pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Супер Малыш Хорек")
-clock = pygame.time.Clock()
-
-class Camera:
-    def __init__(self, width, height):
-        self.camera_rect = pygame.Rect(0, 0, width, height)
-        self.width = width
-        self.height = height
-
-    def apply(self, target_rect):
-        """
-        Возвращает новое положение спрайта с учетом смещения камеры.
-        """
-        return target_rect.move(-self.camera_rect.x, -self.camera_rect.y)
-
-    def update(self, target):
-        """
-        Центрирует камеру на цели (персонаже), ограничивая ее границами карты.
-        """
-        x = target.rect.centerx - WIDTH // 2
-        y = target.rect.centery - HEIGHT // 2
-
-        # Ограничиваем камеру границами карты
-        x = max(0, min(x, self.width - WIDTH))
-        y = max(0, min(y, self.height - HEIGHT))
-
-        self.camera_rect = pygame.Rect(x, y, WIDTH, HEIGHT)
-
-class BabyFerret(pygame.sprite.Sprite):
-    def __init__(self, x, y, tmx_data):
+class SlimeEnemy(pygame.sprite.Sprite):
+    def __init__(self, x, y, sprite_sheet_path):
         super().__init__()
-        self.image = pygame.image.load("BabyFerret.png")
-        self.image = pygame.transform.scale(self.image, (32, 32))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
-        self.velocity_y = 0  # Начальная вертикальная скорость
-        self.is_jumping = False
-        self.tmx_data = tmx_data
 
-    def update(self, keys, platforms, blocked_tiles):
-        # Движение влево и вправо
-        if keys[pygame.K_a]:
-            self.rect.x -= PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("BabyFerret.png"), True, False)
-            self.image = pygame.transform.scale(self.image, (32, 32))
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    self.rect.left = tile.right
-                    break
+        # Constants
+        self.FRAME_WIDTH = 32
+        self.FRAME_HEIGHT = 32
+        self.ANIMATION_SPEED = 10  # Slower animation speed for walking
+        self.DEATH_ANIMATION_SPEED = 5  # Faster death animation
+        self.MOVE_SPEED = 2
+        self.LEFT_ANIMATION_ROW = 0
+        self.RIGHT_ANIMATION_ROW = 1
+        self.DEATH_ANIMATION_ROW = 2
 
-        if keys[pygame.K_d]:
-            self.rect.x += PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("BabyFerret.png"), False, False)
-            self.image = pygame.transform.scale(self.image, (32, 32))
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    self.rect.right = tile.left
-                    break
+        # Load sprite sheet
+        self.sprite_sheet = pygame.image.load(sprite_sheet_path).convert_alpha()
+        self.frames = []
+        self.load_frames()
 
-        # Гравитация
-        self.velocity_y += GRAVITY
-        self.rect.y += self.velocity_y
+        # Initial properties
+        self.image = self.frames[self.LEFT_ANIMATION_ROW][0]
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.frame_index = 0
+        self.animation_timer = 0
+        self.is_dead = False
+        self.direction = 1  # 1 for right, -1 for left
 
-        self.is_jumping = True
-        for platform in platforms:
-            if self.rect.colliderect(platform):
-                if self.velocity_y > 0:
-                    self.rect.bottom = platform.top
-                    self.velocity_y = 0
-                    self.is_jumping = False
+    def load_frames(self):
+        """Extract frames from sprite sheet for each animation row."""
+        for row in range(3):
+            row_frames = []
+            for col in range(4):  # Corrected to 4 columns
+                frame = self.sprite_sheet.subsurface(
+                    (col * self.FRAME_WIDTH, row * self.FRAME_HEIGHT, self.FRAME_WIDTH, self.FRAME_HEIGHT)
+                )
+                row_frames.append(frame)
+            self.frames.append(row_frames)
 
-        for tile in blocked_tiles:
-            if self.rect.colliderect(tile):
-                if self.velocity_y > 0:
-                    self.rect.bottom = tile.top
-                    self.velocity_y = 0
-                    self.is_jumping = False
-                elif self.velocity_y < 0:
-                    self.rect.top = tile.bottom
-                    self.velocity_y = 0
+    def update(self):
+        """Update enemy's movement, animation, and death state."""
+        if self.is_dead:
+            self.animate(self.DEATH_ANIMATION_ROW, self.DEATH_ANIMATION_SPEED)
+            if self.frame_index == len(self.frames[self.DEATH_ANIMATION_ROW]) - 1:
+                self.kill()  # Remove the slime from the game
+            return
 
-        if keys[pygame.K_w] and not self.is_jumping:
-            self.velocity_y = JUMP_STRENGTH
-            self.is_jumping = True
+        # Movement logic
+        self.rect.x += self.direction * self.MOVE_SPEED
 
+        # Switch direction at screen bounds (example logic)
+        if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
+            self.direction *= -1
+
+        # Update animation based on direction
+        animation_row = self.RIGHT_ANIMATION_ROW if self.direction > 0 else self.LEFT_ANIMATION_ROW
+        self.animate(animation_row, self.ANIMATION_SPEED)
+
+    def animate(self, row, speed):
+        """Handle frame updates for the given animation row."""
+        self.animation_timer += 1
+        if self.animation_timer >= speed:
+            self.animation_timer = 0
+            self.frame_index = (self.frame_index + 1) % len(self.frames[row])
+        self.image = self.frames[row][self.frame_index]
+
+    def die(self):
+        """Trigger the death state for the slime."""
+        self.is_dead = True
+        self.frame_index = 0  # Reset animation to start
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((32, 32))
+        self.image.fill((0, 128, 255))  # Player color
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.speed_x = 0
+        self.speed_y = 0
+        self.gravity = 1
+        self.jump_power = -15
+        self.on_ground = False
+
+    def handle_keys(self):
+        keys = pygame.key.get_pressed()
+        self.speed_x = 0
+
+        if keys[pygame.K_LEFT]:
+            self.speed_x = -5
+        if keys[pygame.K_RIGHT]:
+            self.speed_x = 5
+        if keys[pygame.K_SPACE] and self.on_ground:
+            self.speed_y = self.jump_power
+            self.on_ground = False
+
+    def update(self):
+        self.handle_keys()
+        self.rect.x += self.speed_x
+
+        # Gravity
+        self.speed_y += self.gravity
+        self.rect.y += self.speed_y
+
+        # Stay within screen bounds
         if self.rect.left < 0:
             self.rect.left = 0
-        if self.rect.right > self.tmx_data.width * self.tmx_data.tilewidth:
-            self.rect.right = self.tmx_data.width * self.tmx_data.tilewidth
+        if self.rect.right > SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+        if self.rect.bottom > SCREEN_HEIGHT - 32:
+            self.rect.bottom = SCREEN_HEIGHT - 32  # Align with slime height
+            self.speed_y = 0
+            self.on_ground = True
 
-        if self.rect.top > self.tmx_data.height * self.tmx_data.tileheight:
-            self.reset_position()
+# Initialize the game
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Slime Game")
+clock = pygame.time.Clock()
 
-    def reset_position(self):
-        for obj in self.tmx_data.objects:
-            if obj.name == "Player":
-                self.rect.topleft = (obj.x, obj.y)
-                self.velocity_y = 0
-                self.is_jumping = False
-                break
+# Load assets
+sprite_sheet_path = "slime-spritesheet.png"  # Update this path if needed
 
-class FirstLevel:
-    def __init__(self, map_file):
-        self.all_sprites = pygame.sprite.Group()
-        self.platforms = []
-        self.blocked_tiles = []
+# Create sprite groups
+all_sprites = pygame.sprite.Group()
+slime_group = pygame.sprite.Group()
 
-        self.tmx_data = load_pygame(map_file)
+# Create player and enemy instances
+player = Player(100, SCREEN_HEIGHT - 64)
+slime = SlimeEnemy(300, SCREEN_HEIGHT - 64, sprite_sheet_path)
 
-        self.Ferret = None
-        for obj in self.tmx_data.objects:
-            if obj.name == "Player":
-                self.Ferret = BabyFerret(obj.x, obj.y, self.tmx_data)
-                self.all_sprites.add(self.Ferret)
-                break
+all_sprites.add(player, slime)
+slime_group.add(slime)
 
-        for layer in self.tmx_data.visible_layers:
-            if hasattr(layer, 'data'):
-                for x, y, gid in layer:
-                    tile = self.tmx_data.get_tile_image_by_gid(gid)
-                    if tile:
-                        tile_rect = pygame.Rect(x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight,
-                                                self.tmx_data.tilewidth, self.tmx_data.tileheight)
-                        if gid == 1116:
-                            self.blocked_tiles.append(tile_rect)
-                        else:
-                            self.platforms.append(tile_rect)
+# Game loop
+running = True
+while running:
+    screen.fill((50, 50, 50))  # Clear screen
 
-        self.camera = Camera(self.tmx_data.width * self.tmx_data.tilewidth,
-                              self.tmx_data.height * self.tmx_data.tileheight)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-    def run(self):
-        running = True
+    # Update sprites
+    all_sprites.update()
 
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+    # Collision detection
+    hits = pygame.sprite.spritecollide(player, slime_group, False)
+    for slime in hits:
+        if player.speed_y > 0 and player.rect.bottom <= slime.rect.top + 10:  # Player is falling and slightly above slime
+            slime.die()
+            player.speed_y = player.jump_power // 2  # Bounce the player after killing the slime
+        else:
+            print("Player died!")
+            running = False
 
-            keys = pygame.key.get_pressed()
-            self.Ferret.update(keys, self.platforms, self.blocked_tiles)
-            self.camera.update(self.Ferret)
+    # Draw sprites
+    all_sprites.draw(screen)
 
-            screen.fill(CYAN)
-            self.render_map()
-            for sprite in self.all_sprites:
-                screen.blit(sprite.image, self.camera.apply(sprite.rect))
+    # Update the display
+    pygame.display.flip()
 
-            pygame.display.flip()
-            clock.tick(FPS)
+    # Cap the frame rate
+    clock.tick(FPS)
 
-    def render_map(self):
-        for layer in self.tmx_data.visible_layers:
-            if hasattr(layer, 'data'):
-                for x, y, gid in layer:
-                    tile = self.tmx_data.get_tile_image_by_gid(gid)
-                    if tile:
-                        screen.blit(tile, (x * self.tmx_data.tilewidth - self.camera.camera_rect.x,
-                                           y * self.tmx_data.tileheight - self.camera.camera_rect.y))
-
-    def start_screen(self):
-        screen.fill(WHITE)
-        font = pygame.font.Font(None, 74)
-        text = font.render("Супер Малыш Хорек", True, (0, 0, 0))
-        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 3))
-
-        font = pygame.font.Font(None, 36)
-        text = font.render("Нажмите любую клавишу, чтобы начать (Управление: WASD)", True, (0, 0, 0))
-        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2))
-
-        pygame.display.flip()
-
-        waiting = True
-        while waiting:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.KEYDOWN:
-                    waiting = False
-
-if __name__ == "__main__":
-    level = FirstLevel("FirstLevel.tmx")
-    level.start_screen()
-    level.run()
-    pygame.quit()
-    sys.exit()
+pygame.quit()
