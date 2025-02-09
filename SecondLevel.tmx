@@ -29,11 +29,11 @@
   <object id="1" name="Player" x="110.667" y="592"/>
  </objectgroup>
  <objectgroup id="3" name="Enemy">
-  <object id="2" x="2990.67" y="588"/>
-  <object id="4" x="2766.67" y="588"/>
-  <object id="5" x="2605.33" y="586.667"/>
-  <object id="6" x="2345.33" y="588"/>
-  <object id="7" x="2009.33" y="588"/>
+  <object id="2" name="Enemy" x="2990.67" y="588"/>
+  <object id="4" name="Enemy" x="2766.67" y="588"/>
+  <object id="5" name="Enemy" x="2605.33" y="586.667"/>
+  <object id="6" name="Enemy" x="2345.33" y="588"/>
+  <object id="7" name="Enemy" x="2009.33" y="588"/>
   <object id="12" name="Enemy" x="1619.67" y="592"/>
  </objectgroup>
 </map>

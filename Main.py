@@ -45,8 +45,7 @@ class BabyFerret(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.image.load("Ferret.png")
         self.image = pygame.transform.scale(self.image, (32, 32))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        self.rect = self.image.get_rect(topleft=(x, y))
         self.velocity_y = 0  # Начальная вертикальная скорость
         self.is_jumping = False
         self.tmx_data = tmx_data
@@ -114,22 +113,112 @@ class BabyFerret(pygame.sprite.Sprite):
                 break
 
 
-class Enemy:
+class Mob(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
-        self.image = pygame.image.load("Enemy.png")
-        self.image = pygame.transform.scale(self.image, (32, 32))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
-        self.velocity_y = 0  # Начальная вертикальная скорость
         self.tmx_data = tmx_data
 
+        self.FRAME_WIDTH = 32
+        self.FRAME_HEIGHT = 32
+        self.ANIMATION_SPEED = 10
+        self.DEATH_ANIMATION_SPEED = 5
+        self.MOVE_SPEED = 2
+        self.LEFT_ANIMATION_ROW = 0
+        self.RIGHT_ANIMATION_ROW = 1
+        self.DEATH_ANIMATION_ROW = 2
+        self.NUM_ROWS = 3
+        self.NUM_COLS = 4
 
-class FirstLevel:
+        self.sprite_sheet = pygame.image.load("slime-spritesheet.png").convert_alpha()
+        self.frames = []
+        self.load_frames()
+
+        self.image = self.frames[self.LEFT_ANIMATION_ROW][0]
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.frame_index = 0
+        self.animation_timer = 0
+        self.is_dead = False
+        self.direction = 1  # 1 для движения вправо, -1 для влево
+        self.velocity_y = 0
+
+    def load_frames(self):
+        """Загрузка кадров анимации из спрайт-листа."""
+        for row in range(self.NUM_ROWS):
+            row_frames = []
+            for col in range(self.NUM_COLS):
+                frame = self.sprite_sheet.subsurface(
+                    (col * self.FRAME_WIDTH, row * self.FRAME_HEIGHT, self.FRAME_WIDTH, self.FRAME_HEIGHT)
+                )
+                row_frames.append(frame)
+            self.frames.append(row_frames)
+
+    def update(self, keys, platforms, blocked_tiles):
+        if self.is_dead:
+            self.animate(self.DEATH_ANIMATION_ROW, self.DEATH_ANIMATION_SPEED)
+            if self.frame_index == len(self.frames[self.DEATH_ANIMATION_ROW]) - 1:
+                self.kill()
+            return
+
+        # Гравитация
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
+
+        # Вертикальные столкновения
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.velocity_y > 0:
+                    self.rect.bottom = tile.top
+                    self.velocity_y = 0
+                elif self.velocity_y < 0:
+                    self.rect.top = tile.bottom
+                    self.velocity_y = 0
+
+        # Горизонтальное движение
+        self.rect.x += self.direction * self.MOVE_SPEED
+
+        # Горизонтальные столкновения
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.direction > 0:  # Движение вправо
+                    self.rect.right = tile.left
+                elif self.direction < 0:  # Движение влево
+                    self.rect.left = tile.right
+                self.direction *= -1
+                self.frame_index = 0  # Сброс анимации
+
+        # Ограничение выхода за границы уровня
+        if self.rect.left <= 0 or self.rect.right >= self.tmx_data.width * self.tmx_data.tilewidth:
+            self.direction *= -1
+            self.frame_index = 0
+
+        # Анимация движения
+        self.animate(self.LEFT_ANIMATION_ROW, self.ANIMATION_SPEED)
+
+        # Поворот изображения при движении вправо
+        if self.direction > 0:
+            self.image = pygame.transform.flip(self.image, True, False)
+
+    def animate(self, row, speed):
+        """Обработка анимации для указанного ряда кадров."""
+        self.animation_timer += 1
+        if self.animation_timer >= speed:
+            self.animation_timer = 0
+            self.frame_index = (self.frame_index + 1) % len(self.frames[row])
+        self.image = self.frames[row][self.frame_index]
+
+    def die(self):
+        """Перевод врага в состояние смерти."""
+        self.is_dead = True
+        self.frame_index = 0  # Сброс анимации на начало
+
+
+
+class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
         self.platforms = []
         self.blocked_tiles = []
+        self.enemies = []
 
         self.tmx_data = pytmx.load_pygame(map_file)
 
@@ -138,7 +227,10 @@ class FirstLevel:
             if obj.name == "Player":
                 self.Ferret = BabyFerret(obj.x, obj.y, self.tmx_data)
                 self.all_sprites.add(self.Ferret)
-                break
+            if obj.name == "Enemy":
+                enemy = Mob(obj.x, obj.y, self.tmx_data)  # Создаем нового врага
+                self.all_sprites.add(enemy)
+                self.enemies.append(enemy)
 
         for layer in self.tmx_data.visible_layers:
             if hasattr(layer, 'data'):
@@ -147,7 +239,7 @@ class FirstLevel:
                     if tile:
                         tile_rect = pygame.Rect(x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight,
                                                 self.tmx_data.tilewidth, self.tmx_data.tileheight)
-                        if gid == 1116:
+                        if gid != 108:
                             self.blocked_tiles.append(tile_rect)
                         else:
                             self.platforms.append(tile_rect)
@@ -164,8 +256,21 @@ class FirstLevel:
                     running = False
 
             keys = pygame.key.get_pressed()
+            for enemy in self.enemies:
+                enemy.update(keys, self.platforms, self.blocked_tiles)
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
             self.camera.update(self.Ferret)
+
+            hits = pygame.sprite.spritecollide(self.Ferret, self.enemies, False)
+            for slime in hits:
+                # Если игрок падает и его нижняя граница находится чуть выше верхней границы врага
+                if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 15:
+                    slime.die()  # Убить врага
+                    self.Ferret.velocity_y = JUMP_STRENGTH // 2  # Отскок игрока
+                else:
+                    # Игрок умирает, если столкновение не сверху
+                    print("Player died!")
+                    self.Ferret.reset_position()  # Сброс позиции игрока
 
             screen.fill("CYAN")
 
@@ -186,20 +291,6 @@ class FirstLevel:
                                            y * self.tmx_data.tileheight - self.camera.camera_rect.y))
 
 
-class SecondLevel:
-    def __init__(self, map_file):
-        self.all_sprites = pygame.sprite.Group()
-        self.platforms = []
-        self.blocked_tiles = []
-
-        self.tmx_data = pytmx.load_pygame(map_file)
-
-        self.Ferret = None
-        for obj in self.tmx_data.objects:
-            if obj.name == "Player":
-                self.Ferret = BabyFerret(obj.x, obj.y, self.tmx_data)
-                self.all_sprites.add(self.Ferret)
-                break
 
 
 class Button:
@@ -295,7 +386,7 @@ class DownloadScreen:
         pygame.display.flip()
 
     def loading_screen(self):
-        duration = 5
+        duration = 1
         start_time = time.time()
         while time.time() - start_time < duration:
             for event in pygame.event.get():
@@ -313,10 +404,7 @@ class DownloadScreen:
 
 
 if __name__ == "__main__":
-    #download_screen = DownloadScreen()
-    #download_screen.loading_screen()
-    level = FirstLevel("FirstLevel.tmx")
-    #level = SecondLevel("SecondLevel.tmx")
+    level = Level("SecondLevel.tmx")
     start_screen()
     level.run()
     pygame.quit()
