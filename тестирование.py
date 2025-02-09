@@ -59,9 +59,12 @@ class SlimeEnemy(pygame.sprite.Sprite):
         if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
             self.direction *= -1
 
-        # Update animation based on direction
-        animation_row = self.RIGHT_ANIMATION_ROW if self.direction > 0 else self.LEFT_ANIMATION_ROW
-        self.animate(animation_row, self.ANIMATION_SPEED)
+        # Always use the left animation row, but flip the image when moving right
+        self.animate(self.LEFT_ANIMATION_ROW, self.ANIMATION_SPEED)
+
+        # Flip the image if moving right
+        if self.direction > 0:
+            self.image = pygame.transform.flip(self.image, True, False)
 
     def animate(self, row, speed):
         """Handle frame updates for the given animation row."""
