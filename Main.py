@@ -212,7 +212,6 @@ class Mob(pygame.sprite.Sprite):
         self.frame_index = 0  # Сброс анимации на начало
 
 
-
 class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
@@ -290,8 +289,6 @@ class Level:
                                            y * self.tmx_data.tileheight - self.camera.camera_rect.y))
 
 
-
-
 class Button:
     def __init__(self, x, y, width, height, text, font_size=36):
         self.rect = pygame.Rect(x, y, width, height)
@@ -309,39 +306,44 @@ class Button:
         return self.rect.collidepoint(pos)
 
 
-def start_screen():
-    screen.fill(WHITE)
-    font = pygame.font.Font(None, 74)
-    text = font.render("Супер Малыш Хорек", True, BLACK)
-    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 4))
+class StartScreen:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.font = pygame.font.Font(None, 74)
+        self.text = self.font.render("Супер Малыш Хорек", True, BLACK)
+        self.start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Начать игру")
+        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Выход")
+        self.buttons = [self.start_button, self.exit_button]
 
-    start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Начать игру")
-    exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Выход")
+    def run(self):
+        while True:
+            self.screen.fill(WHITE)
+            self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
 
-    buttons = [start_button, exit_button]
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        for button in self.buttons:
+                            if button.is_clicked(event.pos):
+                                if button.text == "Начать игру":
+                                    # Transition to the download screen
+                                    download_screen = DownloadScreen()
+                                    download_screen.loading_screen()
+                                    return
+                                elif button.text == "Выход":
+                                    pygame.quit()
+                                    sys.exit()
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    for button in buttons:
-                        if button.is_clicked(event.pos):
-                            if button.text == "Начать игру":
-                                download_screen = DownloadScreen()
-                                download_screen.loading_screen()
-                                return
-                            elif button.text == "Выход":
-                                pygame.quit()
-                                sys.exit()
+            # Update button colors based on mouse position
+            for button in self.buttons:
+                button.draw(self.screen)
 
-        for button in buttons:
-            button.draw(screen)
+            pygame.display.flip()
+            clock.tick(FPS)
 
-        pygame.display.flip()
-        clock.tick(FPS)
 
 class DownloadScreen:
     def __init__(self):
@@ -404,7 +406,8 @@ class DownloadScreen:
 
 if __name__ == "__main__":
     level = Level("SecondLevel.tmx")
-    start_screen()
+    start_screen = StartScreen()
+    start_screen.run()
     level.run()
     pygame.quit()
     sys.exit()
