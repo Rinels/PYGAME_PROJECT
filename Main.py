@@ -21,6 +21,7 @@ pygame.display.set_caption("Супер Малыш Хорек")
 clock = pygame.time.Clock()
 
 
+
 class Camera:
     def __init__(self, width, height):
         self.camera_rect = pygame.Rect(0, 0, width, height)
@@ -312,8 +313,9 @@ class StartScreen:
         self.font = pygame.font.Font(None, 74)
         self.text = self.font.render("Супер Малыш Хорек", True, BLACK)
         self.start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Начать игру")
-        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Выход")
-        self.buttons = [self.start_button, self.exit_button]
+        self.scores_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Рекорды")
+        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 150, 200, 50, "Выход")
+        self.buttons = [self.start_button, self.scores_button, self.exit_button]
 
     def run(self):
         while True:
@@ -330,19 +332,89 @@ class StartScreen:
                         for button in self.buttons:
                             if button.is_clicked(event.pos):
                                 if button.text == "Начать игру":
-                                    # Transition to the download screen
                                     download_screen = DownloadScreen()
                                     download_screen.loading_screen()
                                     level = Level("ThirdLevel.tmx")
                                     level.run()
                                     return
+                                elif button.text == "Рекорды":
+                                    records = RecordScreen()
+                                    records.run()
                                 elif button.text == "Выход":
                                     pygame.quit()
                                     sys.exit()
 
-            # Update button colors based on mouse position
             for button in self.buttons:
                 button.draw(self.screen)
+
+            pygame.display.flip()
+            clock.tick(FPS)
+
+class RecordScreen:
+    def __init__(self, db_path="records.db"):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.font = pygame.font.Font(None, 48)
+        self.title_font = pygame.font.Font(None, 74)
+        self.db_path = db_path
+        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT - 100, 200, 50, "Назад")
+        self.initialize_db()
+        self.records = self.get_top_records()
+
+    def initialize_db(self):
+        # Создаем таблицу, если ее нет
+        connection = sqlite3.connect(self.db_path)
+        cursor = connection.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS records (
+                id INTEGER PRIMARY KEY,
+                time REAL
+            )
+        ''')
+        connection.commit()
+        connection.close()
+
+    def get_top_records(self):
+        # Подключение к базе данных и получение 5 лучших времен
+        connection = sqlite3.connect(self.db_path)
+        cursor = connection.cursor()
+        cursor.execute('SELECT time FROM records ORDER BY time ASC LIMIT 5')
+        records = cursor.fetchall()
+        connection.close()
+        return records
+
+    def add_record(self, time):
+        # Добавление нового рекорда
+        connection = sqlite3.connect(self.db_path)
+        cursor = connection.cursor()
+        cursor.execute('INSERT INTO records (time) VALUES (?)', (time,))
+        connection.commit()
+        connection.close()
+
+    def run(self):
+        running = True
+        while running:
+            self.screen.fill(WHITE)
+
+            # Заголовок экрана рекордов
+            title_surface = self.title_font.render("Таблица Рекордов", True, BLACK)
+            self.screen.blit(title_surface, (WIDTH // 2 - title_surface.get_width() // 2, 50))
+
+            # Отображение рекордов
+            for index, record in enumerate(self.records):
+                record_text = f"{index + 1}. {record[0]:.2f} сек"
+                record_surface = self.font.render(record_text, True, BLACK)
+                self.screen.blit(record_surface, (WIDTH // 2 - record_surface.get_width() // 2, 150 + index * 50))
+
+            # Отображение кнопки выхода
+            self.exit_button.draw(self.screen)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1 and self.exit_button.is_clicked(event.pos):
+                        return
 
             pygame.display.flip()
             clock.tick(FPS)
