@@ -263,7 +263,7 @@ class Level:
             # Проверка столкновения игрока с врагами
             hits = pygame.sprite.spritecollide(self.Ferret, self.enemies, False)
             for slime in hits:
-                if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 10:  # Уточнение для верхнего удара
+                if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 15:  # Уточнение для верхнего удара
                     slime.die()  # Убить врага
                     self.Ferret.velocity_y = JUMP_STRENGTH // 2  # Отскок игрока
                 else:
