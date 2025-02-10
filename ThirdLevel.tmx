@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="4">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="26">
  <tileset firstgid="1" source="tiles2.thumb.png.65dffda5d728405d4cf56e14a9d31e18.tsx"/>
  <layer id="1" name="Слой тайлов 1" width="200" height="20">
   <data encoding="csv">
@@ -25,7 +25,31 @@
 162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162,162
 </data>
  </layer>
+ <objectgroup id="4" name="Enemy">
+  <object id="4" name="Enemy" x="606" y="589.333"/>
+  <object id="6" name="Enemy" x="911.333" y="588.667"/>
+  <object id="7" name="Enemy" x="1039.33" y="591.333"/>
+  <object id="8" name="Enemy" x="1457" y="592.333"/>
+  <object id="9" name="Enemy" x="1742.33" y="589.667"/>
+  <object id="10" name="Enemy" x="2266.33" y="588.333"/>
+  <object id="11" name="Enemy" x="2575.67" y="589.667"/>
+  <object id="12" name="Enemy" x="2919.67" y="589.667"/>
+  <object id="13" name="Enemy" x="3193" y="591"/>
+  <object id="14" name="Enemy" x="3650.33" y="586"/>
+  <object id="5" name="Enemy" x="767.667" y="591.333"/>
+  <object id="15" name="Enemy" x="3840" y="588"/>
+  <object id="16" name="Enemy" x="4000" y="588"/>
+  <object id="17" name="Enemy" x="4154.67" y="588"/>
+  <object id="18" name="Enemy" x="4311.33" y="588.667"/>
+  <object id="19" name="Enemy" x="4482.33" y="587.333"/>
+  <object id="20" name="Enemy" x="4621.33" y="585.333"/>
+  <object id="21" name="Enemy" x="5078.67" y="586.667"/>
+  <object id="22" name="Enemy" x="5181.33" y="586.667"/>
+  <object id="23" name="Enemy" x="5326.67" y="587.333"/>
+  <object id="24" name="Enemy" x="5456" y="586.667"/>
+ </objectgroup>
  <objectgroup id="3" name="Player">
   <object id="1" name="Player" x="111" y="592"/>
+  <object id="25" name="Teleport" x="6384" y="589.333"/>
  </objectgroup>
 </map>

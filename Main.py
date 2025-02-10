@@ -238,7 +238,7 @@ class Level:
                     if tile:
                         tile_rect = pygame.Rect(x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight,
                                                 self.tmx_data.tilewidth, self.tmx_data.tileheight)
-                        if gid != 108:
+                        if gid != 162:
                             self.blocked_tiles.append(tile_rect)
                         else:
                             self.platforms.append(tile_rect)
@@ -333,6 +333,8 @@ class StartScreen:
                                     # Transition to the download screen
                                     download_screen = DownloadScreen()
                                     download_screen.loading_screen()
+                                    level = Level("ThirdLevel.tmx")
+                                    level.run()
                                     return
                                 elif button.text == "Выход":
                                     pygame.quit()
@@ -447,9 +449,7 @@ class DownloadScreen:
 
 
 if __name__ == "__main__":
-    level = Level("SecondLevel.tmx")
     start_screen = StartScreen()
     start_screen.run()
-    level.run()
     pygame.quit()
     sys.exit()
