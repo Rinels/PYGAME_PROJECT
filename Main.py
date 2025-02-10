@@ -263,14 +263,14 @@ class Level:
             # Проверка столкновения игрока с врагами
             hits = pygame.sprite.spritecollide(self.Ferret, self.enemies, False)
             for slime in hits:
-                if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 1000:  # Уточнение для верхнего удара
+                if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 1000:
                     slime.die()  # Убить врага
                     self.Ferret.velocity_y = JUMP_STRENGTH // 2  # Отскок игрока
                 else:
                     if self.Ferret.on_ground:
-                        self.Ferret.reset_position()  # Сброс позиции игрока
+                        death_screen = DeathScreen()
+                        death_screen.run()
 
-            # Обновление экрана и рендеринг карты
             screen.fill(CYAN)
             self.render_map()
             for sprite in self.all_sprites:
@@ -317,7 +317,8 @@ class StartScreen:
 
     def run(self):
         while True:
-            self.screen.fill(WHITE)
+            bg = pygame.image.load("Main_menu.jpg")
+            self.screen.blit(bg, (0, 0))
             self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
 
             for event in pygame.event.get():
@@ -338,6 +339,47 @@ class StartScreen:
                                     sys.exit()
 
             # Update button colors based on mouse position
+            for button in self.buttons:
+                button.draw(self.screen)
+
+            pygame.display.flip()
+            clock.tick(FPS)
+
+
+class DeathScreen:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.font = pygame.font.Font(None, 74)
+        self.text = self.font.render("", True, BLACK)
+        self.start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Главное меню")
+        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Выход")
+        self.buttons = [self.start_button, self.exit_button]
+
+    def run(self):
+        while True:
+            bg = pygame.image.load("Die_screen.jpg")
+            self.screen.blit(bg, (0, 0))
+            self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        for button in self.buttons:
+                            if button.is_clicked(event.pos):
+                                if button.text == "Главное меню":
+                                    download_screen = DownloadScreen()
+                                    download_screen.loading_screen()
+                                    start_screen = StartScreen()
+                                    start_screen.run()
+
+                                    return
+                                elif button.text == "Выход":
+                                    pygame.quit()
+                                    sys.exit()
+
             for button in self.buttons:
                 button.draw(self.screen)
 
@@ -368,7 +410,7 @@ class DownloadScreen:
             'Ошибка: хорьки решили, что музыка в игре лишняя.',
             'Если игра вылетела, это потому что хорьки решили устроить перерыв.'
         ]
-        self.loading_text = "Загрузка уровня"
+        self.loading_text = "Загрузка"
         self.additional_text = random.choice(self.offers)
 
         # Анимация точек
@@ -387,7 +429,7 @@ class DownloadScreen:
         pygame.display.flip()
 
     def loading_screen(self):
-        duration = 5
+        duration = 3
         start_time = time.time()
         while time.time() - start_time < duration:
             for event in pygame.event.get():
