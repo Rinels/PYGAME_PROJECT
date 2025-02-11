@@ -27,6 +27,6 @@
  </layer>
  <objectgroup id="2" name="Player" offsetx="0" offsety="1">
   <object id="1" name="Player" x="48.6667" y="589.334"/>
-  <object id="4" name="Teleport" x="2543" y="588"/>
+  <object id="4" name="Teleport" x="2511" y="588.333"/>
  </objectgroup>
 </map>

@@ -27,7 +27,7 @@
  </layer>
  <objectgroup id="2" name="Player">
   <object id="1" name="Player" x="110.667" y="592"/>
-  <object id="23" name="Teleport" x="4142" y="589.333"/>
+  <object id="23" name="Teleport" x="4111" y="588"/>
  </objectgroup>
  <objectgroup id="3" name="Enemy">
   <object id="2" name="Enemy" x="2383.37" y="592.485"/>

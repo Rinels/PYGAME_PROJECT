@@ -15,11 +15,12 @@ WHITE = (255, 255, 255)
 CYAN = (0, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
+LEVELNUMBER = 0
+LEVELS = ['FirstLevel.tmx', 'SecondLevel.tmx', 'ThirdLevel.tmx']
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Супер Малыш Хорек")
 clock = pygame.time.Clock()
-
 
 
 class Camera:
@@ -213,6 +214,29 @@ class Mob(pygame.sprite.Sprite):
         self.frame_index = 0  # Сброс анимации на начало
 
 
+class Teleport(pygame.sprite.Sprite):
+    def __init__(self, x, y, tmx_data):
+        super().__init__()
+        self.image = pygame.image.load("Teleport.png")
+        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.velocity_y = 0
+        self.tmx_data = tmx_data
+
+    def update(self, keys, platforms, blocked_tiles):
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
+
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.velocity_y > 0:
+                    self.rect.bottom = tile.top
+                    self.velocity_y = 0
+                elif self.velocity_y < 0:
+                    self.rect.top = tile.bottom
+                    self.velocity_y = 0
+
+
 class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
@@ -231,6 +255,9 @@ class Level:
                 enemy = Mob(obj.x, obj.y, self.tmx_data)  # Создаем нового врага
                 self.all_sprites.add(enemy)
                 self.enemies.add(enemy)
+            if obj.name == "Teleport":
+                self.tp = Teleport(obj.x, obj.y, self.tmx_data)
+                self.all_sprites.add(self.tp)
 
         for layer in self.tmx_data.visible_layers:
             if hasattr(layer, 'data'):
@@ -248,6 +275,7 @@ class Level:
                               self.tmx_data.height * self.tmx_data.tileheight)
 
     def run(self):
+        global LEVELNUMBER
         running = True
 
         while running:
@@ -258,6 +286,7 @@ class Level:
             keys = pygame.key.get_pressed()
             for enemy in self.enemies:
                 enemy.update(keys, self.platforms, self.blocked_tiles)
+            self.tp.update(keys, self.platforms, self.blocked_tiles)
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
             self.camera.update(self.Ferret)
 
@@ -269,8 +298,25 @@ class Level:
                     self.Ferret.velocity_y = JUMP_STRENGTH // 2  # Отскок игрока
                 else:
                     if self.Ferret.on_ground:
+                        LEVELNUMBER = 0
                         death_screen = DeathScreen()
                         death_screen.run()
+            if pygame.sprite.collide_rect(self.Ferret, self.tp):
+                LEVELNUMBER += 1  # Переход на следующий уровень
+                if LEVELNUMBER < len(LEVELS):  # Если уровни еще есть
+                    download_screen = DownloadScreen()
+                    download_screen.loading_screen()
+                    level = Level(LEVELS[LEVELNUMBER])  # Загрузка следующего уровня
+                    level.run()
+                    return  # Выход из текущего уровня
+                else:
+                    # Если уровни закончились, возвращаемся в главное меню
+                    LEVELNUMBER = 0
+                    download_screen = DownloadScreen()
+                    download_screen.loading_screen()
+                    start_screen = StartScreen()
+                    start_screen.run()
+                    return
 
             screen.fill(CYAN)
             self.render_map()
@@ -334,7 +380,7 @@ class StartScreen:
                                 if button.text == "Начать игру":
                                     download_screen = DownloadScreen()
                                     download_screen.loading_screen()
-                                    level = Level("ThirdLevel.tmx")
+                                    level = Level("FirstLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
@@ -349,6 +395,7 @@ class StartScreen:
 
             pygame.display.flip()
             clock.tick(FPS)
+
 
 class RecordScreen:
     def __init__(self, db_path="records.db"):
@@ -491,7 +538,7 @@ class DownloadScreen:
         self.dots = ["", ".", "..", "..."]
         self.current_dot_index = 0
         self.last_update = pygame.time.get_ticks()
-        self.dot_animation_speed = 500
+        self.dot_animation_speed = 300
 
     def draw_loading_screen(self):
         self.screen.fill(WHITE)

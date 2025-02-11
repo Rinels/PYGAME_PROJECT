@@ -50,6 +50,6 @@
  </objectgroup>
  <objectgroup id="3" name="Player">
   <object id="1" name="Player" x="111" y="592"/>
-  <object id="25" name="Teleport" x="6384" y="589.333"/>
+  <object id="25" name="Teleport" x="6352" y="592"/>
  </objectgroup>
 </map>
