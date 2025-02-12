@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="32">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="130" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="33">
  <tileset firstgid="1" source="tiles2.thumb.png.65dffda5d728405d4cf56e14a9d31e18.tsx"/>
  <layer id="1" name="Слой тайлов 1" width="130" height="20">
   <data encoding="csv">
@@ -33,6 +33,7 @@
   <object id="2" name="Enemy" x="2383.37" y="592.485"/>
   <object id="5" name="Enemy" x="2126.47" y="593.152"/>
   <object id="6" name="Enemy" x="1422.73" y="593.243"/>
+  <object id="32" name="Enemy" x="1645.14" y="594.472"/>
   <object id="7" name="Enemy" x="1135.54" y="590.437"/>
   <object id="12" name="Enemy" x="271.369" y="593.87"/>
   <object id="13" name="Enemy" x="3662.12" y="594.118"/>
