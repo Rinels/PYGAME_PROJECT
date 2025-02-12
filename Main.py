@@ -221,15 +221,13 @@ class Mob(pygame.sprite.Sprite):
 class Princess(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
+        self.image = pygame.image.load("Princess.png")
+        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.velocity_y = 0
         self.tmx_data = tmx_data
         self.MOVE_SPEED = 2
-        self.original_image = pygame.image.load("Princess.png")
-        self.original_image = pygame.transform.scale(self.original_image, (32, 32))
-        self.image = self.original_image
-        self.rect = self.image.get_rect(topleft=(x, y))
-        self.direction = -1  # 1 для движения вправо, -1 для влево
-        self.velocity_y = 0
-
+        self.direction = 1
 
     def update(self, keys, platforms, blocked_tiles):
 
@@ -250,23 +248,21 @@ class Princess(pygame.sprite.Sprite):
         # Горизонтальное движение
         self.rect.x += self.direction * self.MOVE_SPEED
 
-        if blocked_tiles:
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    if self.direction > 0:  # Движение вправо
-                        self.rect.right = tile.left
-                    elif self.direction < 0:  # Движение влево
-                        self.rect.left = tile.right
-                    self.direction *= -1
+        # Горизонтальные столкновения
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.direction > 0:  # Движение вправо
+                    self.rect.right = tile.left
+                elif self.direction < 0:  # Движение влево
+                    self.rect.left = tile.right
+                self.direction *= -1
 
         # Ограничение выхода за границы уровня
         if self.rect.left <= 0 or self.rect.right >= self.tmx_data.width * self.tmx_data.tilewidth:
             self.direction *= -1
 
         if self.direction > 0:
-            self.image = pygame.transform.flip(self.original_image, True, False)
-        else:
-            self.image = self.original_image
+            self.image = pygame.transform.flip(self.image, True, False)
 
 
 class Teleport(pygame.sprite.Sprite):

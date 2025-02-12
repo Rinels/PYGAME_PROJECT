@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="6" nextobjectid="28">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="20" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="26">
  <tileset firstgid="1" source="tiles2.thumb.png.65dffda5d728405d4cf56e14a9d31e18.tsx"/>
  <layer id="1" name="Слой тайлов 1" width="200" height="20">
   <data encoding="csv">
@@ -49,10 +49,7 @@
   <object id="24" name="Enemy" x="5456" y="586.667"/>
  </objectgroup>
  <objectgroup id="3" name="Player">
-  <object id="1" name="Player" x="5716.13" y="518.95"/>
+  <object id="1" name="Player" x="111" y="592"/>
   <object id="25" name="Teleport" x="6352" y="592"/>
- </objectgroup>
- <objectgroup id="5" name="Princess">
-  <object id="27" name="Princess" x="5904.33" y="593.308"/>
  </objectgroup>
 </map>
