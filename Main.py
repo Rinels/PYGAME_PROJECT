@@ -45,44 +45,53 @@ class Camera:
 class BabyFerret(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
-        self.image = pygame.image.load("Ferret.png")
-        self.image = pygame.transform.scale(self.image, (32, 32))
-        self.rect = self.image.get_rect(topleft=(x, y))
-        self.velocity_y = 0  # Начальная вертикальная скорость
-        self.on_ground = True
         self.tmx_data = tmx_data
+        self.original_image = pygame.image.load("Ferret.png")
+        self.original_image = pygame.transform.scale(self.original_image, (32, 32))
+        self.image = self.original_image
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.velocity_y = 0
+        self.on_ground = True
 
     def update(self, keys, platforms, blocked_tiles):
-        # Движение влево и вправо
+        self.handle_horizontal_movement(keys, blocked_tiles)
+        self.apply_gravity()
+        self.handle_vertical_collisions(platforms, blocked_tiles)
+        self.handle_jumping(keys)
+        self.constrain_to_level_boundaries()
+        self.check_fall_off_map()
+
+    def handle_horizontal_movement(self, keys, blocked_tiles):
         if keys[pygame.K_a]:
             self.rect.x -= PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("Ferret.png"), True, False)
-            self.image = pygame.transform.scale(self.image, (32, 32))
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    self.rect.left = tile.right
-                    break
+            self.image = pygame.transform.flip(self.original_image, True, False)
+            self.handle_horizontal_collisions(blocked_tiles, "left")
 
         if keys[pygame.K_d]:
             self.rect.x += PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("Ferret.png"), False, False)
-            self.image = pygame.transform.scale(self.image, (32, 32))
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    self.rect.right = tile.left
-                    break
+            self.image = self.original_image
+            self.handle_horizontal_collisions(blocked_tiles, "right")
 
-        # Гравитация
+    def handle_horizontal_collisions(self, blocked_tiles, direction):
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if direction == "left":
+                    self.rect.left = tile.right
+                elif direction == "right":
+                    self.rect.right = tile.left
+                break
+
+    def apply_gravity(self):
         self.velocity_y += GRAVITY
         self.rect.y += self.velocity_y
 
+    def handle_vertical_collisions(self, platforms, blocked_tiles):
         self.on_ground = False
         for platform in platforms:
-            if self.rect.colliderect(platform):
-                if self.velocity_y > 0:
-                    self.rect.bottom = platform.top
-                    self.velocity_y = 0
-                    self.on_ground = True
+            if self.rect.colliderect(platform) and self.velocity_y > 0:
+                self.rect.bottom = platform.top
+                self.velocity_y = 0
+                self.on_ground = True
 
         for tile in blocked_tiles:
             if self.rect.colliderect(tile):
@@ -94,20 +103,21 @@ class BabyFerret(pygame.sprite.Sprite):
                     self.rect.top = tile.bottom
                     self.velocity_y = 0
 
-        if keys[pygame.K_w] and self.on_ground:
+    def handle_jumping(self, keys):
+        if (keys[pygame.K_w] or keys[pygame.K_SPACE]) and self.on_ground:
             self.velocity_y = JUMP_STRENGTH
             self.on_ground = False
 
-        if keys[pygame.K_SPACE] and self.on_ground:
-            self.velocity_y = JUMP_STRENGTH
-            self.on_ground = False
-
+    def constrain_to_level_boundaries(self):
+        level_width = self.tmx_data.width * self.tmx_data.tilewidth
         if self.rect.left < 0:
             self.rect.left = 0
-        if self.rect.right > self.tmx_data.width * self.tmx_data.tilewidth:
-            self.rect.right = self.tmx_data.width * self.tmx_data.tilewidth
+        if self.rect.right > level_width:
+            self.rect.right = level_width
 
-        if self.rect.top > self.tmx_data.height * self.tmx_data.tileheight:
+    def check_fall_off_map(self):
+        level_height = self.tmx_data.height * self.tmx_data.tileheight
+        if self.rect.top > level_height:
             self.reset_position()
 
     def reset_position(self):
@@ -115,7 +125,6 @@ class BabyFerret(pygame.sprite.Sprite):
             if obj.name == "Player":
                 self.rect.topleft = (obj.x, obj.y)
                 self.velocity_y = 0
-                self.is_jumping = False
                 break
 
 
@@ -148,7 +157,6 @@ class Mob(pygame.sprite.Sprite):
         self.velocity_y = 0
 
     def load_frames(self):
-        """Загрузка кадров анимации из спрайт-листа."""
         for row in range(self.NUM_ROWS):
             row_frames = []
             for col in range(self.NUM_COLS):
@@ -232,7 +240,6 @@ class Princess(pygame.sprite.Sprite):
 
 
     def update(self, keys, platforms, blocked_tiles):
-
         # Гравитация
         self.velocity_y += GRAVITY
         self.rect.y += self.velocity_y
@@ -527,6 +534,7 @@ class RecordScreen:
 
             pygame.display.flip()
             clock.tick(FPS)
+
 
 class WinScreen:
     def __init__(self):
