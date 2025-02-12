@@ -15,6 +15,7 @@ WHITE = (255, 255, 255)
 CYAN = (0, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
+TOTALTIME = 0
 LEVELNUMBER = 0
 LEVELS = ['FirstLevel.tmx', 'SecondLevel.tmx', 'ThirdLevel.tmx']
 pygame.init()
@@ -307,9 +308,11 @@ class Level:
         self.blocked_tiles = []
         self.check = False
 
+        self.start_time = time.time()  # Время начала уровня
+        self.current_time = 0
+
         self.tmx_data = pytmx.load_pygame(map_file)
 
-        self.Ferret = None
         for obj in self.tmx_data.objects:
             if obj.name == "Player":
                 self.Ferret = BabyFerret(obj.x, obj.y, self.tmx_data)
@@ -342,13 +345,15 @@ class Level:
                               self.tmx_data.height * self.tmx_data.tileheight)
 
     def run(self):
-        global LEVELNUMBER
+        global LEVELNUMBER, TOTALTIME
         running = True
 
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+
+            self.current_time = time.time() - self.start_time
 
             keys = pygame.key.get_pressed()
             for enemy in self.enemies:
@@ -371,18 +376,22 @@ class Level:
                 else:
                     if self.Ferret.on_ground:
                         LEVELNUMBER = 0
-                        death_screen = DeathScreen()
-                        death_screen.run()
+                        DeathScreen().run()
+                        return
             if pygame.sprite.collide_rect(self.Ferret, self.tp):
                 LEVELNUMBER += 1
                 if LEVELNUMBER < len(LEVELS):
-                    download_screen = DownloadScreen()
-                    download_screen.loading_screen()
+                    TOTALTIME += self.current_time
+                    DownloadScreen().loading_screen()
                     level = Level(LEVELS[LEVELNUMBER])
                     level.run()
                     return
                 else:
+                    TOTALTIME += self.current_time
+                    record_screen = RecordScreen()
+                    record_screen.add_record(TOTALTIME)
                     LEVELNUMBER = 0
+                    TOTALTIME = 0
                     win_screen = WinScreen()
                     win_screen.run()
                     return
@@ -447,14 +456,13 @@ class StartScreen:
                         for button in self.buttons:
                             if button.is_clicked(event.pos):
                                 if button.text == "Начать игру":
-                                    download_screen = DownloadScreen()
-                                    download_screen.loading_screen()
+                                    DownloadScreen().loading_screen()
                                     level = Level("FirstLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
-                                    records = RecordScreen()
-                                    records.run()
+                                    RecordScreen().run()
+                                    return
                                 elif button.text == "Выход":
                                     pygame.quit()
                                     sys.exit()
@@ -530,6 +538,7 @@ class RecordScreen:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1 and self.exit_button.is_clicked(event.pos):
+                        StartScreen().run()
                         return
 
             pygame.display.flip()
@@ -542,8 +551,9 @@ class WinScreen:
         self.font = pygame.font.Font(None, 74)
         self.text = self.font.render("", True, BLACK)
         self.start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Главное меню")
-        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Выход")
-        self.buttons = [self.start_button, self.exit_button]
+        self.scores_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Рекорды")
+        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 150, 200, 50, "Выход")
+        self.buttons = [self.start_button, self.scores_button, self.exit_button]
 
     def run(self):
         while True:
@@ -560,12 +570,14 @@ class WinScreen:
                         for button in self.buttons:
                             if button.is_clicked(event.pos):
                                 if button.text == "Главное меню":
-                                    download_screen = DownloadScreen()
-                                    download_screen.loading_screen()
-                                    start_screen = StartScreen()
-                                    start_screen.run()
-
+                                    DownloadScreen().loading_screen()
+                                    StartScreen().run()
                                     return
+
+                                elif button.text == "Рекорды":
+                                    RecordScreen().run()
+                                    return
+
                                 elif button.text == "Выход":
                                     pygame.quit()
                                     sys.exit()
@@ -601,12 +613,10 @@ class DeathScreen:
                         for button in self.buttons:
                             if button.is_clicked(event.pos):
                                 if button.text == "Главное меню":
-                                    download_screen = DownloadScreen()
-                                    download_screen.loading_screen()
-                                    start_screen = StartScreen()
-                                    start_screen.run()
-
+                                    DownloadScreen().loading_screen()
+                                    StartScreen().run()
                                     return
+
                                 elif button.text == "Выход":
                                     pygame.quit()
                                     sys.exit()
@@ -676,7 +686,6 @@ class DownloadScreen:
 
 
 if __name__ == "__main__":
-    start_screen = StartScreen()
-    start_screen.run()
+    StartScreen().run()
     pygame.quit()
     sys.exit()
