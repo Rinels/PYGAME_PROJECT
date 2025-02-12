@@ -47,7 +47,7 @@ class BabyFerret(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
         self.tmx_data = tmx_data
-        self.original_image = pygame.image.load("Ferret.png")
+        self.original_image = pygame.image.load("sprites/Ferret.png")
         self.original_image = pygame.transform.scale(self.original_image, (32, 32))
         self.image = self.original_image
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -145,7 +145,7 @@ class Mob(pygame.sprite.Sprite):
         self.NUM_ROWS = 3
         self.NUM_COLS = 4
 
-        self.sprite_sheet = pygame.image.load("slime-spritesheet.png").convert_alpha()
+        self.sprite_sheet = pygame.image.load("sprites/slime-spritesheet.png").convert_alpha()
         self.frames = []
         self.load_frames()
 
@@ -232,7 +232,7 @@ class Princess(pygame.sprite.Sprite):
         super().__init__()
         self.tmx_data = tmx_data
         self.MOVE_SPEED = 2
-        self.original_image = pygame.image.load("Princess.png")
+        self.original_image = pygame.image.load("sprites/Princess.png")
         self.original_image = pygame.transform.scale(self.original_image, (32, 32))
         self.image = self.original_image
         self.rect = self.image.get_rect(topleft=(x, y))
@@ -280,7 +280,7 @@ class Princess(pygame.sprite.Sprite):
 class Teleport(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
-        self.image = pygame.image.load("Teleport.png")
+        self.image = pygame.image.load("sprites/Teleport.png")
         self.image = pygame.transform.scale(self.image, (32, 32))
         self.rect = self.image.get_rect(topleft=(x, y))
         self.velocity_y = 0
@@ -443,7 +443,7 @@ class StartScreen:
 
     def run(self):
         while True:
-            bg = pygame.image.load("Main_menu.jpg")
+            bg = pygame.image.load("pictures/Main_menu.jpg")
             self.screen.blit(bg, (0, 0))
             self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
 
@@ -457,7 +457,7 @@ class StartScreen:
                             if button.is_clicked(event.pos):
                                 if button.text == "Начать игру":
                                     DownloadScreen().loading_screen()
-                                    level = Level("FirstLevel.tmx")
+                                    level = Level("maps/FirstLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
@@ -557,7 +557,7 @@ class WinScreen:
 
     def run(self):
         while True:
-            bg = pygame.image.load("WinScreen.jpg")
+            bg = pygame.image.load("pictures/WinScreen.jpg")
             self.screen.blit(bg, (0, 0))
             self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
 
@@ -600,7 +600,7 @@ class DeathScreen:
 
     def run(self):
         while True:
-            bg = pygame.image.load("Die_screen.jpg")
+            bg = pygame.image.load("pictures/Die_screen.jpg")
             self.screen.blit(bg, (0, 0))
             self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
 
