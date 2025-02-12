@@ -288,6 +288,7 @@ class Teleport(pygame.sprite.Sprite):
                     self.velocity_y = 0
 
 
+
 class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
