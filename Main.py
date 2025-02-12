@@ -298,6 +298,7 @@ class Level:
         self.enemies = pygame.sprite.Group()
         self.platforms = []
         self.blocked_tiles = []
+        self.check = False
 
         self.tmx_data = pytmx.load_pygame(map_file)
 
@@ -314,6 +315,7 @@ class Level:
                 self.tp = Teleport(obj.x, obj.y, self.tmx_data)
                 self.all_sprites.add(self.tp)
             if obj.name == "Princess":
+                self.check = True
                 self.princess = Princess(obj.x, obj.y, self.tmx_data)
                 self.all_sprites.add(self.princess)
 
@@ -344,37 +346,38 @@ class Level:
             keys = pygame.key.get_pressed()
             for enemy in self.enemies:
                 enemy.update(keys, self.platforms, self.blocked_tiles)
+
             self.tp.update(keys, self.platforms, self.blocked_tiles)
+
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
-            self.princess.update(keys, self.platforms, self.blocked_tiles)
+
+            if self.check:
+                self.princess.update(keys, self.platforms, self.blocked_tiles)
+
             self.camera.update(self.Ferret)
 
-            # Проверка столкновения игрока с врагами
             hits = pygame.sprite.spritecollide(self.Ferret, self.enemies, False)
             for slime in hits:
                 if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 1000:
                     slime.die()  # Убить врага
-                    self.Ferret.velocity_y = JUMP_STRENGTH // 2  # Отскок игрока
+                    self.Ferret.velocity_y = JUMP_STRENGTH // 2
                 else:
                     if self.Ferret.on_ground:
                         LEVELNUMBER = 0
                         death_screen = DeathScreen()
                         death_screen.run()
             if pygame.sprite.collide_rect(self.Ferret, self.tp):
-                LEVELNUMBER += 1  # Переход на следующий уровень
-                if LEVELNUMBER < len(LEVELS):  # Если уровни еще есть
+                LEVELNUMBER += 1
+                if LEVELNUMBER < len(LEVELS):
                     download_screen = DownloadScreen()
                     download_screen.loading_screen()
-                    level = Level(LEVELS[LEVELNUMBER])  # Загрузка следующего уровня
+                    level = Level(LEVELS[LEVELNUMBER])
                     level.run()
-                    return  # Выход из текущего уровня
+                    return
                 else:
-                    # Если уровни закончились, возвращаемся в главное меню
                     LEVELNUMBER = 0
-                    download_screen = DownloadScreen()
-                    download_screen.loading_screen()
-                    start_screen = StartScreen()
-                    start_screen.run()
+                    win_screen = WinScreen()
+                    win_screen.run()
                     return
 
             screen.fill(CYAN)
@@ -439,7 +442,7 @@ class StartScreen:
                                 if button.text == "Начать игру":
                                     download_screen = DownloadScreen()
                                     download_screen.loading_screen()
-                                    level = Level("ThirdLevel.tmx")
+                                    level = Level("FirstLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
@@ -525,6 +528,46 @@ class RecordScreen:
             pygame.display.flip()
             clock.tick(FPS)
 
+class WinScreen:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.font = pygame.font.Font(None, 74)
+        self.text = self.font.render("", True, BLACK)
+        self.start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Главное меню")
+        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Выход")
+        self.buttons = [self.start_button, self.exit_button]
+
+    def run(self):
+        while True:
+            bg = pygame.image.load("WinScreen.jpg")
+            self.screen.blit(bg, (0, 0))
+            self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        for button in self.buttons:
+                            if button.is_clicked(event.pos):
+                                if button.text == "Главное меню":
+                                    download_screen = DownloadScreen()
+                                    download_screen.loading_screen()
+                                    start_screen = StartScreen()
+                                    start_screen.run()
+
+                                    return
+                                elif button.text == "Выход":
+                                    pygame.quit()
+                                    sys.exit()
+
+            for button in self.buttons:
+                button.draw(self.screen)
+
+            pygame.display.flip()
+            clock.tick(FPS)
+
 
 class DeathScreen:
     def __init__(self):
@@ -575,25 +618,23 @@ class DownloadScreen:
         self.small_font = pygame.font.Font(None, 36)
         self.offers = [
             'А вы знаете, что очень трудно найти спрайт хорька?',
-            'Warning: хорек обнаружил неинициализированную переменную. Он ее унес.',
+            'Хорек обнаружил неинициализированную переменную. Он ее унес.',
             'Мы подозреваем, что это не ошибка, а хорьки устроили вечеринку в коде.',
             'Факт: хорьки используют рекурсию, чтобы прятать носки в бесконечном цикле.',
             'Ошибка 404: хорек не найден. Он ушел в отладку.',
             'Если хорек завис — это не баг, он просто размышляет о смысле жизни.',
             'Кажется, хорьки вырыли нору в текстурах. Мы копаем следом.',
-            'Ошибка: хорек украл часть уровня. Сейчас вернем.',
+            'Хорек украл часть уровня. Сейчас вернем.',
             'Если враг не двигается, хорьки говорят, что это "режим стелса".',
             'Хорьки утверждают, что багов нет — это новые механики.',
             'Ваш хорек застрял в текстурах? Это его зона комфорта.',
             'Секретный факт: хорьки заменяют баги своей харизмой.',
             'Баг или фича? Хорьки молчат, как шпионы.',
-            'Ошибка: хорьки решили, что музыка в игре лишняя.',
+            'Хорьки решили, что музыка в игре лишняя.',
             'Если игра вылетела, это потому что хорьки решили устроить перерыв.'
         ]
         self.loading_text = "Загрузка"
         self.additional_text = random.choice(self.offers)
-
-        # Анимация точек
         self.dots = ["", ".", "..", "..."]
         self.current_dot_index = 0
         self.last_update = pygame.time.get_ticks()
