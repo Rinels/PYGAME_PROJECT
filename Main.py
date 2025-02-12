@@ -436,7 +436,7 @@ class StartScreen:
                                 if button.text == "Начать игру":
                                     download_screen = DownloadScreen()
                                     download_screen.loading_screen()
-                                    level = Level("ThirdLevel.tmx")
+                                    level = Level("FirstLevel.tmx.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
