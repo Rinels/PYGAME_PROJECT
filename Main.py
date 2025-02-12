@@ -98,6 +98,10 @@ class BabyFerret(pygame.sprite.Sprite):
             self.velocity_y = JUMP_STRENGTH
             self.on_ground = False
 
+        if keys[pygame.K_SPACE] and self.on_ground:
+            self.velocity_y = JUMP_STRENGTH
+            self.on_ground = False
+
         if self.rect.left < 0:
             self.rect.left = 0
         if self.rect.right > self.tmx_data.width * self.tmx_data.tilewidth:
@@ -214,6 +218,53 @@ class Mob(pygame.sprite.Sprite):
         self.frame_index = 0  # Сброс анимации на начало
 
 
+class Princess(pygame.sprite.Sprite):
+    def __init__(self, x, y, tmx_data):
+        super().__init__()
+        self.image = pygame.image.load("Princess.png")
+        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.velocity_y = 0
+        self.tmx_data = tmx_data
+        self.MOVE_SPEED = 2
+        self.direction = 1
+
+    def update(self, keys, platforms, blocked_tiles):
+
+        # Гравитация
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
+
+        # Вертикальные столкновения
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.velocity_y > 0:
+                    self.rect.bottom = tile.top
+                    self.velocity_y = 0
+                elif self.velocity_y < 0:
+                    self.rect.top = tile.bottom
+                    self.velocity_y = 0
+
+        # Горизонтальное движение
+        self.rect.x += self.direction * self.MOVE_SPEED
+
+        # Горизонтальные столкновения
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.direction > 0:  # Движение вправо
+                    self.rect.right = tile.left
+                elif self.direction < 0:  # Движение влево
+                    self.rect.left = tile.right
+                self.direction *= -1
+
+        # Ограничение выхода за границы уровня
+        if self.rect.left <= 0 or self.rect.right >= self.tmx_data.width * self.tmx_data.tilewidth:
+            self.direction *= -1
+
+        if self.direction > 0:
+            self.image = pygame.transform.flip(self.image, True, False)
+
+
 class Teleport(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
@@ -258,6 +309,9 @@ class Level:
             if obj.name == "Teleport":
                 self.tp = Teleport(obj.x, obj.y, self.tmx_data)
                 self.all_sprites.add(self.tp)
+            if obj.name == "Princess":
+                self.princess = Princess(obj.x, obj.y, self.tmx_data)
+                self.all_sprites.add(self.princess)
 
         for layer in self.tmx_data.visible_layers:
             if hasattr(layer, 'data'):
@@ -288,6 +342,7 @@ class Level:
                 enemy.update(keys, self.platforms, self.blocked_tiles)
             self.tp.update(keys, self.platforms, self.blocked_tiles)
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
+            self.princess.update(keys, self.platforms, self.blocked_tiles)
             self.camera.update(self.Ferret)
 
             # Проверка столкновения игрока с врагами
@@ -380,7 +435,7 @@ class StartScreen:
                                 if button.text == "Начать игру":
                                     download_screen = DownloadScreen()
                                     download_screen.loading_screen()
-                                    level = Level("FirstLevel.tmx")
+                                    level = Level("ThirdLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
