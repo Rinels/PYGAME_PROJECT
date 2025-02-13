@@ -17,7 +17,7 @@ BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 TOTALTIME = 0
 LEVELNUMBER = 0
-LEVELS = ['maps/FirstLevel.tmx', 'maps/SecondLevel.tmx', 'maps/ThirdLevel.tmx']
+LEVELS = ['maps/FirstLevel.tmx', 'maps/SecondLevel.tmx', 'maps/ThirdLevel.tmx', 'maps/FourthLevel.tmx', 'maps/FifthLevel.tmx']
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Супер Малыш Хорек")
@@ -286,13 +286,38 @@ class Teleport(pygame.sprite.Sprite):
                     self.velocity_y = 0
 
 
+class Shipi(pygame.sprite.Sprite):
+    def __init__(self, x, y, tmx_data):
+        super().__init__()
+        self.image = pygame.image.load("sprites/Shipi.png")
+        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.velocity_y = 0
+        self.tmx_data = tmx_data
+
+    def update(self, keys, platforms, blocked_tiles):
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
+
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.velocity_y > 0:
+                    self.rect.bottom = tile.top
+                    self.velocity_y = 0
+                elif self.velocity_y < 0:
+                    self.rect.top = tile.bottom
+                    self.velocity_y = 0
+
+
 class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
+        self.shipes = pygame.sprite.Group()
         self.platforms = []
         self.blocked_tiles = []
         self.check = False
+        self.check2 = False
 
         self.start_time = time.time()  # Время начала уровня
         self.current_time = 0
@@ -314,6 +339,13 @@ class Level:
                 self.check = True
                 self.princess = Princess(obj.x, obj.y, self.tmx_data)
                 self.all_sprites.add(self.princess)
+            if obj.name == "Shipi":
+                self.check2 = True
+                shipi = Shipi(obj.x, obj.y, self.tmx_data)
+                self.all_sprites.add(shipi)
+                self.shipes.add(shipi)
+
+
 
         for layer in self.tmx_data.visible_layers:
             if hasattr(layer, 'data'):
@@ -351,6 +383,19 @@ class Level:
 
             if self.check:
                 self.princess.update(keys, self.platforms, self.blocked_tiles)
+                if pygame.sprite.collide_rect(self.Ferret, self.princess):
+                    self.princess.run()
+
+                if pygame.sprite.collide_rect(self.tp, self.princess):
+                    self.princess.kill()
+
+            if self.check2:
+                self.shipes.update(keys, self.platforms, self.blocked_tiles)
+                hits = pygame.sprite.spritecollide(self.Ferret, self.shipes, False)
+                if hits:
+                    LEVELNUMBER = 0
+                    DeathScreen().run()
+                    return
 
             self.camera.update(self.Ferret)
 
@@ -364,14 +409,6 @@ class Level:
                         LEVELNUMBER = 0
                         DeathScreen().run()
                         return
-
-            if self.check:
-                if pygame.sprite.collide_rect(self.Ferret, self.princess):
-                    self.princess.run()
-
-                if pygame.sprite.collide_rect(self.tp, self.princess):
-                    self.princess.kill()
-
 
             if pygame.sprite.collide_rect(self.Ferret, self.tp):
                 LEVELNUMBER += 1
