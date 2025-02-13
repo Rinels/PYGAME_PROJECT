@@ -15,11 +15,13 @@ WHITE = (255, 255, 255)
 CYAN = (0, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
+TOTALTIME = 0
+LEVELNUMBER = 0
+LEVELS = ['maps/FirstLevel.tmx', 'maps/SecondLevel.tmx', 'maps/ThirdLevel.tmx']
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Супер Малыш Хорек")
 clock = pygame.time.Clock()
-
 
 
 class Camera:
@@ -44,44 +46,53 @@ class Camera:
 class BabyFerret(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
-        self.image = pygame.image.load("Ferret.png")
-        self.image = pygame.transform.scale(self.image, (32, 32))
-        self.rect = self.image.get_rect(topleft=(x, y))
-        self.velocity_y = 0  # Начальная вертикальная скорость
-        self.on_ground = True
         self.tmx_data = tmx_data
+        self.original_image = pygame.image.load("sprites/Ferret.png")
+        self.original_image = pygame.transform.scale(self.original_image, (32, 32))
+        self.image = self.original_image
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.velocity_y = 0
+        self.on_ground = True
 
     def update(self, keys, platforms, blocked_tiles):
-        # Движение влево и вправо
+        self.handle_horizontal_movement(keys, blocked_tiles)
+        self.apply_gravity()
+        self.handle_vertical_collisions(platforms, blocked_tiles)
+        self.handle_jumping(keys)
+        self.constrain_to_level_boundaries()
+        self.check_fall_off_map()
+
+    def handle_horizontal_movement(self, keys, blocked_tiles):
         if keys[pygame.K_a]:
             self.rect.x -= PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("Ferret.png"), True, False)
-            self.image = pygame.transform.scale(self.image, (32, 32))
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    self.rect.left = tile.right
-                    break
+            self.image = pygame.transform.flip(self.original_image, True, False)
+            self.handle_horizontal_collisions(blocked_tiles, "left")
 
         if keys[pygame.K_d]:
             self.rect.x += PLAYER_SPEED
-            self.image = pygame.transform.flip(pygame.image.load("Ferret.png"), False, False)
-            self.image = pygame.transform.scale(self.image, (32, 32))
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    self.rect.right = tile.left
-                    break
+            self.image = self.original_image
+            self.handle_horizontal_collisions(blocked_tiles, "right")
 
-        # Гравитация
+    def handle_horizontal_collisions(self, blocked_tiles, direction):
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if direction == "left":
+                    self.rect.left = tile.right
+                elif direction == "right":
+                    self.rect.right = tile.left
+                break
+
+    def apply_gravity(self):
         self.velocity_y += GRAVITY
         self.rect.y += self.velocity_y
 
+    def handle_vertical_collisions(self, platforms, blocked_tiles):
         self.on_ground = False
         for platform in platforms:
-            if self.rect.colliderect(platform):
-                if self.velocity_y > 0:
-                    self.rect.bottom = platform.top
-                    self.velocity_y = 0
-                    self.on_ground = True
+            if self.rect.colliderect(platform) and self.velocity_y > 0:
+                self.rect.bottom = platform.top
+                self.velocity_y = 0
+                self.on_ground = True
 
         for tile in blocked_tiles:
             if self.rect.colliderect(tile):
@@ -93,16 +104,21 @@ class BabyFerret(pygame.sprite.Sprite):
                     self.rect.top = tile.bottom
                     self.velocity_y = 0
 
-        if keys[pygame.K_w] and self.on_ground:
+    def handle_jumping(self, keys):
+        if (keys[pygame.K_w] or keys[pygame.K_SPACE]) and self.on_ground:
             self.velocity_y = JUMP_STRENGTH
             self.on_ground = False
 
+    def constrain_to_level_boundaries(self):
+        level_width = self.tmx_data.width * self.tmx_data.tilewidth
         if self.rect.left < 0:
             self.rect.left = 0
-        if self.rect.right > self.tmx_data.width * self.tmx_data.tilewidth:
-            self.rect.right = self.tmx_data.width * self.tmx_data.tilewidth
+        if self.rect.right > level_width:
+            self.rect.right = level_width
 
-        if self.rect.top > self.tmx_data.height * self.tmx_data.tileheight:
+    def check_fall_off_map(self):
+        level_height = self.tmx_data.height * self.tmx_data.tileheight
+        if self.rect.top > level_height:
             self.reset_position()
 
     def reset_position(self):
@@ -110,7 +126,6 @@ class BabyFerret(pygame.sprite.Sprite):
             if obj.name == "Player":
                 self.rect.topleft = (obj.x, obj.y)
                 self.velocity_y = 0
-                self.is_jumping = False
                 break
 
 
@@ -130,7 +145,7 @@ class Mob(pygame.sprite.Sprite):
         self.NUM_ROWS = 3
         self.NUM_COLS = 4
 
-        self.sprite_sheet = pygame.image.load("slime-spritesheet.png").convert_alpha()
+        self.sprite_sheet = pygame.image.load("sprites/slime-spritesheet.png").convert_alpha()
         self.frames = []
         self.load_frames()
 
@@ -143,7 +158,6 @@ class Mob(pygame.sprite.Sprite):
         self.velocity_y = 0
 
     def load_frames(self):
-        """Загрузка кадров анимации из спрайт-листа."""
         for row in range(self.NUM_ROWS):
             row_frames = []
             for col in range(self.NUM_COLS):
@@ -213,16 +227,78 @@ class Mob(pygame.sprite.Sprite):
         self.frame_index = 0  # Сброс анимации на начало
 
 
+class Princess(pygame.sprite.Sprite):
+    def __init__(self, x, y, tmx_data):
+        super().__init__()
+        self.tmx_data = tmx_data
+        self.MOVE_SPEED = 2
+        self.original_image = pygame.image.load("sprites/Princess.png")
+        self.original_image = pygame.transform.scale(self.original_image, (32, 32))
+        self.image = self.original_image
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.direction = -1  # 1 для движения вправо, -1 для влево
+        self.velocity_y = 0
+        self.running = False
+
+
+    def update(self, keys, platforms, blocked_tiles):
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
+
+        # Вертикальные столкновения
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.velocity_y > 0:
+                    self.rect.bottom = tile.top
+                    self.velocity_y = 0
+                elif self.velocity_y < 0:
+                    self.rect.top = tile.bottom
+                    self.velocity_y = 0
+
+        if self.running:
+            self.rect.x -= self.direction * self.MOVE_SPEED
+            self.image = pygame.transform.flip(self.original_image, True, False)
+
+    def run(self):
+        self.running = True
+
+
+class Teleport(pygame.sprite.Sprite):
+    def __init__(self, x, y, tmx_data):
+        super().__init__()
+        self.image = pygame.image.load("sprites/Teleport.png")
+        self.image = pygame.transform.scale(self.image, (32, 32))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.velocity_y = 0
+        self.tmx_data = tmx_data
+
+    def update(self, keys, platforms, blocked_tiles):
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
+
+        for tile in blocked_tiles:
+            if self.rect.colliderect(tile):
+                if self.velocity_y > 0:
+                    self.rect.bottom = tile.top
+                    self.velocity_y = 0
+                elif self.velocity_y < 0:
+                    self.rect.top = tile.bottom
+                    self.velocity_y = 0
+
+
 class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
         self.platforms = []
         self.blocked_tiles = []
+        self.check = False
+
+        self.start_time = time.time()  # Время начала уровня
+        self.current_time = 0
 
         self.tmx_data = pytmx.load_pygame(map_file)
 
-        self.Ferret = None
         for obj in self.tmx_data.objects:
             if obj.name == "Player":
                 self.Ferret = BabyFerret(obj.x, obj.y, self.tmx_data)
@@ -231,6 +307,13 @@ class Level:
                 enemy = Mob(obj.x, obj.y, self.tmx_data)  # Создаем нового врага
                 self.all_sprites.add(enemy)
                 self.enemies.add(enemy)
+            if obj.name == "Teleport":
+                self.tp = Teleport(obj.x, obj.y, self.tmx_data)
+                self.all_sprites.add(self.tp)
+            if obj.name == "Princess":
+                self.check = True
+                self.princess = Princess(obj.x, obj.y, self.tmx_data)
+                self.all_sprites.add(self.princess)
 
         for layer in self.tmx_data.visible_layers:
             if hasattr(layer, 'data'):
@@ -248,6 +331,7 @@ class Level:
                               self.tmx_data.height * self.tmx_data.tileheight)
 
     def run(self):
+        global LEVELNUMBER, TOTALTIME
         running = True
 
         while running:
@@ -255,22 +339,56 @@ class Level:
                 if event.type == pygame.QUIT:
                     running = False
 
+            self.current_time = time.time() - self.start_time
+
             keys = pygame.key.get_pressed()
             for enemy in self.enemies:
                 enemy.update(keys, self.platforms, self.blocked_tiles)
+
+            self.tp.update(keys, self.platforms, self.blocked_tiles)
+
             self.Ferret.update(keys, self.platforms, self.blocked_tiles)
+
+            if self.check:
+                self.princess.update(keys, self.platforms, self.blocked_tiles)
+
             self.camera.update(self.Ferret)
 
-            # Проверка столкновения игрока с врагами
             hits = pygame.sprite.spritecollide(self.Ferret, self.enemies, False)
             for slime in hits:
                 if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 1000:
                     slime.die()  # Убить врага
-                    self.Ferret.velocity_y = JUMP_STRENGTH // 2  # Отскок игрока
+                    self.Ferret.velocity_y = JUMP_STRENGTH // 2
                 else:
                     if self.Ferret.on_ground:
-                        death_screen = DeathScreen()
-                        death_screen.run()
+                        LEVELNUMBER = 0
+                        DeathScreen().run()
+                        return
+
+            if self.check:
+                if pygame.sprite.collide_rect(self.Ferret, self.princess):
+                    self.princess.run()
+
+                if pygame.sprite.collide_rect(self.tp, self.princess):
+                    self.princess.kill()
+
+
+            if pygame.sprite.collide_rect(self.Ferret, self.tp):
+                LEVELNUMBER += 1
+                if LEVELNUMBER < len(LEVELS):
+                    TOTALTIME += self.current_time
+                    DownloadScreen().loading_screen()
+                    level = Level(LEVELS[LEVELNUMBER])
+                    level.run()
+                    return
+                else:
+                    TOTALTIME += self.current_time
+                    record_screen = RecordScreen()
+                    record_screen.add_record(TOTALTIME)
+                    LEVELNUMBER = 0
+                    TOTALTIME = 0
+                    WinScreen().run()
+                    return
 
             screen.fill(CYAN)
             self.render_map()
@@ -319,7 +437,7 @@ class StartScreen:
 
     def run(self):
         while True:
-            bg = pygame.image.load("Main_menu.jpg")
+            bg = pygame.image.load("pictures/Main_menu.jpg")
             self.screen.blit(bg, (0, 0))
             self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
 
@@ -332,14 +450,13 @@ class StartScreen:
                         for button in self.buttons:
                             if button.is_clicked(event.pos):
                                 if button.text == "Начать игру":
-                                    download_screen = DownloadScreen()
-                                    download_screen.loading_screen()
-                                    level = Level("ThirdLevel.tmx")
+                                    DownloadScreen().loading_screen()
+                                    level = Level("maps/FirstLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
-                                    records = RecordScreen()
-                                    records.run()
+                                    RecordScreen().run()
+                                    return
                                 elif button.text == "Выход":
                                     pygame.quit()
                                     sys.exit()
@@ -349,6 +466,7 @@ class StartScreen:
 
             pygame.display.flip()
             clock.tick(FPS)
+
 
 class RecordScreen:
     def __init__(self, db_path="records.db"):
@@ -414,7 +532,52 @@ class RecordScreen:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1 and self.exit_button.is_clicked(event.pos):
+                        StartScreen().run()
                         return
+
+            pygame.display.flip()
+            clock.tick(FPS)
+
+
+class WinScreen:
+    def __init__(self):
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.font = pygame.font.Font(None, 74)
+        self.text = self.font.render("", True, BLACK)
+        self.start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Главное меню")
+        self.scores_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Рекорды")
+        self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 150, 200, 50, "Выход")
+        self.buttons = [self.start_button, self.scores_button, self.exit_button]
+
+    def run(self):
+        while True:
+            bg = pygame.image.load("pictures/WinScreen.jpg")
+            self.screen.blit(bg, (0, 0))
+            self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        for button in self.buttons:
+                            if button.is_clicked(event.pos):
+                                if button.text == "Главное меню":
+                                    DownloadScreen().loading_screen()
+                                    StartScreen().run()
+                                    return
+
+                                elif button.text == "Рекорды":
+                                    RecordScreen().run()
+                                    return
+
+                                elif button.text == "Выход":
+                                    pygame.quit()
+                                    sys.exit()
+
+            for button in self.buttons:
+                button.draw(self.screen)
 
             pygame.display.flip()
             clock.tick(FPS)
@@ -431,7 +594,7 @@ class DeathScreen:
 
     def run(self):
         while True:
-            bg = pygame.image.load("Die_screen.jpg")
+            bg = pygame.image.load("pictures/Die_screen.jpg")
             self.screen.blit(bg, (0, 0))
             self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
 
@@ -444,12 +607,10 @@ class DeathScreen:
                         for button in self.buttons:
                             if button.is_clicked(event.pos):
                                 if button.text == "Главное меню":
-                                    download_screen = DownloadScreen()
-                                    download_screen.loading_screen()
-                                    start_screen = StartScreen()
-                                    start_screen.run()
-
+                                    DownloadScreen().loading_screen()
+                                    StartScreen().run()
                                     return
+
                                 elif button.text == "Выход":
                                     pygame.quit()
                                     sys.exit()
@@ -469,29 +630,27 @@ class DownloadScreen:
         self.small_font = pygame.font.Font(None, 36)
         self.offers = [
             'А вы знаете, что очень трудно найти спрайт хорька?',
-            'Warning: хорек обнаружил неинициализированную переменную. Он ее унес.',
+            'Хорек обнаружил неинициализированную переменную. Он ее унес.',
             'Мы подозреваем, что это не ошибка, а хорьки устроили вечеринку в коде.',
             'Факт: хорьки используют рекурсию, чтобы прятать носки в бесконечном цикле.',
             'Ошибка 404: хорек не найден. Он ушел в отладку.',
             'Если хорек завис — это не баг, он просто размышляет о смысле жизни.',
             'Кажется, хорьки вырыли нору в текстурах. Мы копаем следом.',
-            'Ошибка: хорек украл часть уровня. Сейчас вернем.',
+            'Хорек украл часть уровня. Сейчас вернем.',
             'Если враг не двигается, хорьки говорят, что это "режим стелса".',
             'Хорьки утверждают, что багов нет — это новые механики.',
             'Ваш хорек застрял в текстурах? Это его зона комфорта.',
             'Секретный факт: хорьки заменяют баги своей харизмой.',
             'Баг или фича? Хорьки молчат, как шпионы.',
-            'Ошибка: хорьки решили, что музыка в игре лишняя.',
+            'Хорьки решили, что музыка в игре лишняя.',
             'Если игра вылетела, это потому что хорьки решили устроить перерыв.'
         ]
         self.loading_text = "Загрузка"
         self.additional_text = random.choice(self.offers)
-
-        # Анимация точек
         self.dots = ["", ".", "..", "..."]
         self.current_dot_index = 0
         self.last_update = pygame.time.get_ticks()
-        self.dot_animation_speed = 500
+        self.dot_animation_speed = 300
 
     def draw_loading_screen(self):
         self.screen.fill(WHITE)
@@ -521,7 +680,6 @@ class DownloadScreen:
 
 
 if __name__ == "__main__":
-    start_screen = StartScreen()
-    start_screen.run()
+    StartScreen().run()
     pygame.quit()
     sys.exit()
