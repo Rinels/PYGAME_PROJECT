@@ -17,7 +17,7 @@ BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 TOTALTIME = 0
 LEVELNUMBER = 0
-LEVELS = ['FirstLevel.tmx', 'SecondLevel.tmx', 'ThirdLevel.tmx']
+LEVELS = ['maps/FirstLevel.tmx', 'maps/SecondLevel.tmx', 'maps/ThirdLevel.tmx']
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Супер Малыш Хорек")
@@ -378,6 +378,8 @@ class Level:
                         LEVELNUMBER = 0
                         DeathScreen().run()
                         return
+            #if pygame.sprite.collide_rect(self.Ferret, self.princess):
+
             if pygame.sprite.collide_rect(self.Ferret, self.tp):
                 LEVELNUMBER += 1
                 if LEVELNUMBER < len(LEVELS):
@@ -392,8 +394,7 @@ class Level:
                     record_screen.add_record(TOTALTIME)
                     LEVELNUMBER = 0
                     TOTALTIME = 0
-                    win_screen = WinScreen()
-                    win_screen.run()
+                    WinScreen().run()
                     return
 
             screen.fill(CYAN)
