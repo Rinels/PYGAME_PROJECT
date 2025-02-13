@@ -238,10 +238,10 @@ class Princess(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(x, y))
         self.direction = -1  # 1 для движения вправо, -1 для влево
         self.velocity_y = 0
+        self.running = False
 
 
     def update(self, keys, platforms, blocked_tiles):
-        # Гравитация
         self.velocity_y += GRAVITY
         self.rect.y += self.velocity_y
 
@@ -255,26 +255,12 @@ class Princess(pygame.sprite.Sprite):
                     self.rect.top = tile.bottom
                     self.velocity_y = 0
 
-        # Горизонтальное движение
-        self.rect.x += self.direction * self.MOVE_SPEED
-
-        if blocked_tiles:
-            for tile in blocked_tiles:
-                if self.rect.colliderect(tile):
-                    if self.direction > 0:  # Движение вправо
-                        self.rect.right = tile.left
-                    elif self.direction < 0:  # Движение влево
-                        self.rect.left = tile.right
-                    self.direction *= -1
-
-        # Ограничение выхода за границы уровня
-        if self.rect.left <= 0 or self.rect.right >= self.tmx_data.width * self.tmx_data.tilewidth:
-            self.direction *= -1
-
-        if self.direction > 0:
+        if self.running:
+            self.rect.x -= self.direction * self.MOVE_SPEED
             self.image = pygame.transform.flip(self.original_image, True, False)
-        else:
-            self.image = self.original_image
+
+    def run(self):
+        self.running = True
 
 
 class Teleport(pygame.sprite.Sprite):
@@ -378,7 +364,14 @@ class Level:
                         LEVELNUMBER = 0
                         DeathScreen().run()
                         return
-            #if pygame.sprite.collide_rect(self.Ferret, self.princess):
+
+            if self.check:
+                if pygame.sprite.collide_rect(self.Ferret, self.princess):
+                    self.princess.run()
+
+                if pygame.sprite.collide_rect(self.tp, self.princess):
+                    self.princess.kill()
+
 
             if pygame.sprite.collide_rect(self.Ferret, self.tp):
                 LEVELNUMBER += 1
