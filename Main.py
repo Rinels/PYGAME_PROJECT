@@ -15,8 +15,8 @@ WHITE = (255, 255, 255)
 CYAN = (0, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
-TOTALTIME = 0
-LEVELNUMBER = 0
+TOTAL_TIME = 0
+LEVEL_NUMBER = 0
 LEVELS = ['maps/FirstLevel.tmx', 'maps/SecondLevel.tmx', 'maps/ThirdLevel.tmx', 'maps/FourthLevel.tmx', 'maps/FifthLevel.tmx']
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -145,7 +145,7 @@ class Mob(pygame.sprite.Sprite):
         self.NUM_ROWS = 3
         self.NUM_COLS = 4
 
-        self.sprite_sheet = pygame.image.load("sprites/slime-spritesheet.png").convert_alpha()
+        self.sprite_sheet = pygame.image.load("sprites/Slime.png").convert_alpha()
         self.frames = []
         self.load_frames()
 
@@ -286,10 +286,10 @@ class Teleport(pygame.sprite.Sprite):
                     self.velocity_y = 0
 
 
-class Shipi(pygame.sprite.Sprite):
+class Thorn(pygame.sprite.Sprite):
     def __init__(self, x, y, tmx_data):
         super().__init__()
-        self.image = pygame.image.load("sprites/Shipi.png")
+        self.image = pygame.image.load("sprites/Thorns.png")
         self.image = pygame.transform.scale(self.image, (32, 32))
         self.rect = self.image.get_rect(topleft=(x, y))
         self.velocity_y = 0
@@ -313,7 +313,7 @@ class Level:
     def __init__(self, map_file):
         self.all_sprites = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
-        self.shipes = pygame.sprite.Group()
+        self.thorns = pygame.sprite.Group()
         self.platforms = []
         self.blocked_tiles = []
         self.check = False
@@ -341,9 +341,9 @@ class Level:
                 self.all_sprites.add(self.princess)
             if obj.name == "Shipi":
                 self.check2 = True
-                shipi = Shipi(obj.x, obj.y, self.tmx_data)
-                self.all_sprites.add(shipi)
-                self.shipes.add(shipi)
+                thorn = Thorn(obj.x, obj.y, self.tmx_data)
+                self.all_sprites.add(thorn)
+                self.thorns.add(thorn)
 
 
 
@@ -363,7 +363,7 @@ class Level:
                               self.tmx_data.height * self.tmx_data.tileheight)
 
     def run(self):
-        global LEVELNUMBER, TOTALTIME
+        global LEVEL_NUMBER, TOTAL_TIME
         running = True
 
         while running:
@@ -390,10 +390,10 @@ class Level:
                     self.princess.kill()
 
             if self.check2:
-                self.shipes.update(keys, self.platforms, self.blocked_tiles)
-                hits = pygame.sprite.spritecollide(self.Ferret, self.shipes, False)
+                self.thorns.update(keys, self.platforms, self.blocked_tiles)
+                hits = pygame.sprite.spritecollide(self.Ferret, self.thorns, False)
                 if hits:
-                    LEVELNUMBER = 0
+                    LEVEL_NUMBER = 0
                     DeathScreen().run()
                     return
 
@@ -406,25 +406,26 @@ class Level:
                     self.Ferret.velocity_y = JUMP_STRENGTH // 2
                 else:
                     if self.Ferret.on_ground:
-                        LEVELNUMBER = 0
+                        LEVEL_NUMBER = 0
                         DeathScreen().run()
                         return
 
             if pygame.sprite.collide_rect(self.Ferret, self.tp):
-                LEVELNUMBER += 1
-                if LEVELNUMBER < len(LEVELS):
-                    TOTALTIME += self.current_time
+                LEVEL_NUMBER += 1
+                if LEVEL_NUMBER < len(LEVELS):
+                    TOTAL_TIME += self.current_time
                     DownloadScreen().loading_screen()
-                    level = Level(LEVELS[LEVELNUMBER])
+                    level = Level(LEVELS[LEVEL_NUMBER])
                     level.run()
                     return
                 else:
-                    TOTALTIME += self.current_time
+                    TOTAL_TIME += self.current_time
                     record_screen = RecordScreen()
-                    record_screen.add_record(TOTALTIME)
-                    LEVELNUMBER = 0
-                    TOTALTIME = 0
-                    WinScreen().run()
+                    record_screen.add_record(TOTAL_TIME)
+                    win_screen = WinScreen(TOTAL_TIME)
+                    LEVEL_NUMBER = 0
+                    TOTAL_TIME = 0
+                    win_screen.run()
                     return
 
             screen.fill(CYAN)
@@ -577,10 +578,11 @@ class RecordScreen:
 
 
 class WinScreen:
-    def __init__(self):
+    def __init__(self, time):
+        self.time = time
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        self.font = pygame.font.Font(None, 74)
-        self.text = self.font.render("", True, BLACK)
+        self.font = pygame.font.Font(None, 65)
+        self.text = self.font.render(f"Время: {self.time:.2f} сек", True, BLACK)
         self.start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50, "Главное меню")
         self.scores_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 50, 200, 50, "Рекорды")
         self.exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 150, 200, 50, "Выход")
@@ -590,7 +592,7 @@ class WinScreen:
         while True:
             bg = pygame.image.load("pictures/WinScreen.jpg")
             self.screen.blit(bg, (0, 0))
-            self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4))
+            self.screen.blit(self.text, (WIDTH // 2 - self.text.get_width() // 2, HEIGHT // 4 + 50))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
