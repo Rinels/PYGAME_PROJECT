@@ -502,7 +502,7 @@ class StartScreen:
                             if button.is_clicked(event.pos):
                                 if button.text == "Начать игру":
                                     DownloadScreen().loading_screen()
-                                    level = Level("maps/FifthLevel.tmx")
+                                    level = Level("maps/FirstLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
