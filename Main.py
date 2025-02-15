@@ -318,6 +318,7 @@ class Level:
         self.blocked_tiles = []
         self.check = False
         self.check2 = False
+        self.check_win = False
 
         self.start_time = time.time()  # Время начала уровня
         self.current_time = 0
@@ -388,6 +389,7 @@ class Level:
 
                 if pygame.sprite.collide_rect(self.tp, self.princess):
                     self.princess.kill()
+                    self.check_win = True
 
             if self.check2:
                 self.thorns.update(keys, self.platforms, self.blocked_tiles)
@@ -402,7 +404,7 @@ class Level:
             hits = pygame.sprite.spritecollide(self.Ferret, self.enemies, False)
             for slime in hits:
                 if self.Ferret.velocity_y > 0 and self.Ferret.rect.bottom <= slime.rect.top + 1000:
-                    slime.die()  # Убить врага
+                    slime.die()
                     self.Ferret.velocity_y = JUMP_STRENGTH // 2
                 else:
                     if self.Ferret.on_ground:
@@ -410,7 +412,7 @@ class Level:
                         DeathScreen().run()
                         return
 
-            if pygame.sprite.collide_rect(self.Ferret, self.tp):
+            if pygame.sprite.collide_rect(self.Ferret, self.tp) and not self.check:
                 LEVEL_NUMBER += 1
                 if LEVEL_NUMBER < len(LEVELS):
                     TOTAL_TIME += self.current_time
@@ -427,6 +429,17 @@ class Level:
                     TOTAL_TIME = 0
                     win_screen.run()
                     return
+            else:
+                if self.check_win and pygame.sprite.collide_rect(self.Ferret, self.tp):
+                    TOTAL_TIME += self.current_time
+                    record_screen = RecordScreen()
+                    record_screen.add_record(TOTAL_TIME)
+                    win_screen = WinScreen(TOTAL_TIME)
+                    LEVEL_NUMBER = 0
+                    TOTAL_TIME = 0
+                    win_screen.run()
+                    return
+
 
             screen.fill(CYAN)
             self.render_map()
@@ -489,7 +502,7 @@ class StartScreen:
                             if button.is_clicked(event.pos):
                                 if button.text == "Начать игру":
                                     DownloadScreen().loading_screen()
-                                    level = Level("maps/FirstLevel.tmx")
+                                    level = Level("maps/FifthLevel.tmx")
                                     level.run()
                                     return
                                 elif button.text == "Рекорды":
